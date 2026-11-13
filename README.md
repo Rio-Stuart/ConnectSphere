@@ -92,16 +92,6 @@ Visit **`http://localhost:3000`** in your browser.
 
 ---
 
-## ☁️ Deploy to Netlify
-
-This project includes first-class support for **Netlify** and **Netlify Database**:
-
-1. Push your repository to GitHub.
-2. In the [Netlify Dashboard](https://app.netlify.com), click **Add new site** ➔ **Import an existing project**.
-3. Select your repository. Netlify will automatically detect `netlify.toml`, provision a managed PostgreSQL database, apply migrations, and deploy the application.
-
----
-
 ## 📄 License
 
 MIT License. Designed and developed for DBMS academic demonstration and social media platform architecture.
