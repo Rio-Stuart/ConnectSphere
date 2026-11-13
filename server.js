@@ -54,7 +54,8 @@ async function runQuery(sql, params = []) {
   const type = trimmed.split(/\s/)[0].toUpperCase();
 
   // If Netlify Database is active (Netlify environment or NETLIFY_DB_URL is set)
-  const isNetlifyDbActive = Boolean(process.env.NETLIFY || process.env.NETLIFY_DB_URL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  const isNetlifyEnv = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  const isNetlifyDbActive = isNetlifyEnv || Boolean(process.env.NETLIFY_DB_URL);
 
   if (isNetlifyDbActive) {
     try {
@@ -76,7 +77,12 @@ async function runQuery(sql, params = []) {
         affectedRows: result.rowCount
       };
     } catch (netErr) {
-      console.warn('⚠️ Netlify Database query failed, attempting MySQL fallback:', netErr.message);
+      console.error('❌ Netlify Database query failed:', netErr.message);
+      if (isNetlifyEnv) {
+        // In Netlify serverless environment, there is no local MySQL. Surface the real database error!
+        throw netErr;
+      }
+      console.warn('⚠️ Netlify Database query failed in local dev, attempting MySQL fallback:', netErr.message);
     }
   }
 
@@ -98,6 +104,10 @@ async function runQuery(sql, params = []) {
 
 // ── Automatic Database & Schema Verification ──────────────────
 async function initDatabase() {
+  // If running in Netlify cloud serverless environment, skip local MySQL connection attempt
+  if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return;
+  }
   try {
     const conn = await pool.getConnection();
     conn.release();
@@ -146,7 +156,7 @@ app.get('/api/users', async (_req, res) => {
   try {
     const sql = `
       SELECT user_id, username, email, bio, avatar, created_at,
-             (LOWER(username) = 'admin' OR is_admin = 1) AS is_admin
+             (LOWER(username) = 'admin' OR is_admin IS TRUE) AS is_admin
       FROM Users
       ORDER BY created_at DESC`;
     const { rows, query, params } = await runQuery(sql);
@@ -164,7 +174,7 @@ app.get('/api/users/:id', async (req, res) => {
 
     const sql = `
       SELECT u.user_id, u.username, u.email, u.bio, u.avatar, u.created_at,
-             (LOWER(u.username) = 'admin' OR u.is_admin = 1) AS is_admin,
+             (LOWER(u.username) = 'admin' OR u.is_admin IS TRUE) AS is_admin,
              (SELECT COUNT(*) FROM Followers WHERE following_id = u.user_id) AS follower_count,
              (SELECT COUNT(*) FROM Followers WHERE follower_id  = u.user_id) AS following_count,
              (SELECT COUNT(*) FROM Posts     WHERE user_id      = u.user_id) AS post_count,
@@ -195,7 +205,7 @@ app.post('/api/users', async (req, res) => {
       params
     });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY' || err.message.includes('Duplicate entry')) {
+    if (err.code === 'ER_DUP_ENTRY' || err.code === '23505' || (err.message && (err.message.includes('Duplicate entry') || err.message.includes('duplicate key')))) {
       return res.status(409).json({ error: 'Username or email already exists (UNIQUE constraint violation)', sqlError: err.message });
     }
     res.status(500).json({ error: err.message });
@@ -381,8 +391,9 @@ app.delete('/api/posts/:id', async (req, res) => {
   try {
     const postId = Number(req.params.id);
     const sql = 'DELETE FROM Posts WHERE post_id = ?';
-    const { rows, query, params } = await runQuery(sql, [postId]);
-    if (rows.affectedRows === 0) return res.status(404).json({ error: 'Post not found' });
+    const { rows, query, params, affectedRows } = await runQuery(sql, [postId]);
+    const deletedCount = affectedRows !== undefined ? affectedRows : (rows && rows.affectedRows);
+    if (deletedCount === 0) return res.status(404).json({ error: 'Post not found' });
     res.json({ data: { post_id: postId }, query, params, message: 'Post deleted (ON DELETE CASCADE triggered)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -603,6 +614,26 @@ app.get('/api/analytics/engagement', async (_req, res) => {
   }
 });
 
+// ── Diagnostic / Health Check ────────────────────────────────
+app.get('/api/db-status', async (_req, res) => {
+  try {
+    const isNetlifyEnv = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    const { rows, query } = await runQuery('SELECT 1 as connected, CURRENT_TIMESTAMP as server_time');
+    res.json({
+      status: 'healthy',
+      isNetlifyEnv,
+      hasNetlifyDbUrl: Boolean(process.env.NETLIFY_DB_URL),
+      dbResult: rows[0],
+      query
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      message: err.message
+    });
+  }
+});
+
 // ── Query Logger Management ───────────────────────────────────
 
 app.get('/api/query-log', (_req, res) => {
@@ -618,6 +649,27 @@ app.delete('/api/query-log', (_req, res) => {
 
 app.post('/api/reset', async (_req, res) => {
   try {
+    const isNetlifyEnv = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+    if (isNetlifyEnv) {
+      const schemaSql = fs.readFileSync(path.join(__dirname, 'netlify', 'database', 'migrations', '20261113100000_create_connectsphere_schema.sql'), 'utf-8');
+      const seedSql = fs.readFileSync(path.join(__dirname, 'netlify', 'database', 'migrations', '20261113100001_seed_initial_data.sql'), 'utf-8');
+
+      const { pool: pgPool } = netlifyDb.initDb();
+      if (!pgPool) throw new Error('Netlify Database pool not available for reset');
+
+      await pgPool.query(schemaSql);
+      await pgPool.query(seedSql);
+
+      queryLog = [];
+      return res.json({
+        data: null,
+        message: 'Netlify Database reset and re-seeded successfully',
+        query: '-- Executed PostgreSQL schema and seed migrations',
+        params: []
+      });
+    }
+
     const schemaPath = path.join(__dirname, 'database', 'schema.sql');
     const sql = fs.readFileSync(schemaPath, 'utf-8');
 
