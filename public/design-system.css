@@ -1,0 +1,852 @@
+/* ================================================================
+   ConnectSphere — Design System
+   A refined, minimal token system for a premium social platform.
+   ================================================================ */
+
+/* ── Foundation Tokens ──────────────────────────────────────── */
+:root {
+  /* Color Palette — Light Theme (default for CSS vars) */
+  --cs-bg-primary: #FAFAFA;
+  --cs-bg-secondary: #FFFFFF;
+  --cs-bg-tertiary: #F5F5F7;
+  --cs-bg-elevated: #FFFFFF;
+  --cs-bg-sunken: #F0F0F2;
+  --cs-bg-overlay: rgba(0, 0, 0, 0.4);
+
+  --cs-surface-primary: #FFFFFF;
+  --cs-surface-secondary: #F5F5F7;
+  --cs-surface-hover: #EDEDEF;
+  --cs-surface-active: #E5E5E7;
+
+  --cs-text-primary: #1D1D1F;
+  --cs-text-secondary: #6E6E73;
+  --cs-text-tertiary: #86868B;
+  --cs-text-quaternary: #AEAEB2;
+  --cs-text-inverse: #FFFFFF;
+
+  --cs-border-primary: #D2D2D7;
+  --cs-border-secondary: #E5E5EA;
+  --cs-border-focus: var(--cs-accent);
+
+  /* Accent — one restrained color */
+  --cs-accent: #4F46E5;
+  --cs-accent-hover: #4338CA;
+  --cs-accent-light: rgba(79, 70, 229, 0.08);
+  --cs-accent-muted: rgba(79, 70, 229, 0.15);
+
+  /* Semantic Colors */
+  --cs-success: #22C55E;
+  --cs-success-light: rgba(34, 197, 94, 0.1);
+  --cs-error: #EF4444;
+  --cs-error-light: rgba(239, 68, 68, 0.1);
+  --cs-warning: #F59E0B;
+  --cs-warning-light: rgba(245, 158, 11, 0.1);
+  --cs-info: #3B82F6;
+  --cs-info-light: rgba(59, 130, 246, 0.1);
+
+  /* SQL Badge Colors */
+  --cs-sql-select: #A78BFA;
+  --cs-sql-select-bg: rgba(167, 139, 250, 0.12);
+  --cs-sql-insert: #34D399;
+  --cs-sql-insert-bg: rgba(52, 211, 153, 0.12);
+  --cs-sql-delete: #FB7185;
+  --cs-sql-delete-bg: rgba(251, 113, 133, 0.12);
+  --cs-sql-update: #FBBF24;
+  --cs-sql-update-bg: rgba(251, 191, 36, 0.12);
+
+  /* Terminal Surface (always dark) */
+  --cs-terminal-bg: #0D1117;
+  --cs-terminal-surface: #161B22;
+  --cs-terminal-border: #30363D;
+  --cs-terminal-text: #C9D1D9;
+  --cs-terminal-muted: #8B949E;
+
+  /* Typography */
+  --cs-font-display: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --cs-font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --cs-font-mono: 'Fira Code', 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+
+  --cs-text-xs: 0.6875rem;    /* 11px */
+  --cs-text-sm: 0.8125rem;    /* 13px */
+  --cs-text-base: 0.9375rem;  /* 15px */
+  --cs-text-lg: 1.125rem;     /* 18px */
+  --cs-text-xl: 1.375rem;     /* 22px */
+  --cs-text-2xl: 1.75rem;     /* 28px */
+  --cs-text-3xl: 2.25rem;     /* 36px */
+  --cs-text-4xl: 3rem;        /* 48px */
+  --cs-text-5xl: 3.75rem;     /* 60px */
+
+  --cs-leading-tight: 1.15;
+  --cs-leading-snug: 1.3;
+  --cs-leading-normal: 1.55;
+  --cs-leading-relaxed: 1.7;
+
+  --cs-tracking-tight: -0.025em;
+  --cs-tracking-normal: 0;
+  --cs-tracking-wide: 0.01em;
+
+  /* Weight */
+  --cs-font-regular: 400;
+  --cs-font-medium: 500;
+  --cs-font-semibold: 600;
+  --cs-font-bold: 700;
+
+  /* Spacing (4px base) */
+  --cs-space-0: 0;
+  --cs-space-1: 0.25rem;  /* 4px */
+  --cs-space-2: 0.5rem;   /* 8px */
+  --cs-space-3: 0.75rem;  /* 12px */
+  --cs-space-4: 1rem;     /* 16px */
+  --cs-space-5: 1.25rem;  /* 20px */
+  --cs-space-6: 1.5rem;   /* 24px */
+  --cs-space-8: 2rem;     /* 32px */
+  --cs-space-10: 2.5rem;  /* 40px */
+  --cs-space-12: 3rem;    /* 48px */
+  --cs-space-16: 4rem;    /* 64px */
+  --cs-space-20: 5rem;    /* 80px */
+  --cs-space-24: 6rem;    /* 96px */
+
+  /* Shadows */
+  --cs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --cs-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --cs-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --cs-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --cs-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.06);
+  --cs-shadow-inner: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* Border Radii */
+  --cs-radius-sm: 6px;
+  --cs-radius-md: 10px;
+  --cs-radius-lg: 14px;
+  --cs-radius-xl: 20px;
+  --cs-radius-full: 9999px;
+
+  /* Transitions */
+  --cs-duration-fast: 120ms;
+  --cs-duration-normal: 200ms;
+  --cs-duration-slow: 350ms;
+  --cs-duration-slower: 500ms;
+  --cs-ease-default: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --cs-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --cs-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Z-index */
+  --cs-z-base: 0;
+  --cs-z-dropdown: 10;
+  --cs-z-sticky: 20;
+  --cs-z-header: 40;
+  --cs-z-modal: 50;
+  --cs-z-toast: 60;
+  --cs-z-tooltip: 70;
+
+  /* Layout */
+  --cs-max-width: 1200px;
+  --cs-content-width: 680px;
+  --cs-sidebar-width: 400px;
+
+  color-scheme: light dark;
+}
+
+/* ── Dark Theme Tokens ──────────────────────────────────────── */
+html.dark {
+  --cs-bg-primary: #09090B;
+  --cs-bg-secondary: #18181B;
+  --cs-bg-tertiary: #1E1E22;
+  --cs-bg-elevated: #27272A;
+  --cs-bg-sunken: #0D0D0F;
+  --cs-bg-overlay: rgba(0, 0, 0, 0.7);
+
+  --cs-surface-primary: #18181B;
+  --cs-surface-secondary: #1E1E22;
+  --cs-surface-hover: #27272A;
+  --cs-surface-active: #303036;
+
+  --cs-text-primary: #FAFAFA;
+  --cs-text-secondary: #A1A1AA;
+  --cs-text-tertiary: #71717A;
+  --cs-text-quaternary: #52525B;
+  --cs-text-inverse: #09090B;
+
+  --cs-border-primary: #27272A;
+  --cs-border-secondary: #1E1E22;
+
+  --cs-accent-light: rgba(79, 70, 229, 0.15);
+  --cs-accent-muted: rgba(79, 70, 229, 0.25);
+
+  --cs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --cs-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --cs-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --cs-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --cs-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.3);
+
+  --cs-sql-select-bg: rgba(167, 139, 250, 0.15);
+  --cs-sql-insert-bg: rgba(52, 211, 153, 0.15);
+  --cs-sql-delete-bg: rgba(251, 113, 133, 0.15);
+  --cs-sql-update-bg: rgba(251, 191, 36, 0.15);
+}
+
+/* ── Global Reset & Base ────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--cs-font-body);
+  font-size: var(--cs-text-base);
+  line-height: var(--cs-leading-normal);
+  color: var(--cs-text-primary);
+  background-color: var(--cs-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--cs-accent-muted);
+  color: var(--cs-text-primary);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cs-border-primary);
+  border-radius: var(--cs-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cs-text-tertiary);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cs-border-primary) transparent;
+}
+
+/* ── Typography Utilities ───────────────────────────────────── */
+.cs-heading-1 {
+  font-family: var(--cs-font-display);
+  font-size: var(--cs-text-5xl);
+  font-weight: var(--cs-font-bold);
+  line-height: var(--cs-leading-tight);
+  letter-spacing: var(--cs-tracking-tight);
+  color: var(--cs-text-primary);
+}
+
+.cs-heading-2 {
+  font-family: var(--cs-font-display);
+  font-size: var(--cs-text-3xl);
+  font-weight: var(--cs-font-bold);
+  line-height: var(--cs-leading-tight);
+  letter-spacing: var(--cs-tracking-tight);
+  color: var(--cs-text-primary);
+}
+
+.cs-heading-3 {
+  font-family: var(--cs-font-display);
+  font-size: var(--cs-text-xl);
+  font-weight: var(--cs-font-semibold);
+  line-height: var(--cs-leading-snug);
+  color: var(--cs-text-primary);
+}
+
+.cs-body {
+  font-size: var(--cs-text-base);
+  line-height: var(--cs-leading-normal);
+  color: var(--cs-text-secondary);
+}
+
+.cs-caption {
+  font-size: var(--cs-text-sm);
+  line-height: var(--cs-leading-normal);
+  color: var(--cs-text-tertiary);
+}
+
+.cs-label {
+  font-size: var(--cs-text-sm);
+  font-weight: var(--cs-font-medium);
+  color: var(--cs-text-secondary);
+}
+
+.cs-mono {
+  font-family: var(--cs-font-mono);
+  font-size: var(--cs-text-xs);
+  letter-spacing: -0.01em;
+}
+
+/* ── Component: Card ────────────────────────────────────────── */
+.cs-card {
+  background: var(--cs-surface-primary);
+  border: 1px solid var(--cs-border-secondary);
+  border-radius: var(--cs-radius-lg);
+  overflow: hidden;
+  transition: box-shadow var(--cs-duration-normal) var(--cs-ease-default),
+              border-color var(--cs-duration-normal) var(--cs-ease-default);
+}
+
+.cs-card:hover {
+  box-shadow: var(--cs-shadow-sm);
+}
+
+.cs-card-elevated {
+  background: var(--cs-surface-primary);
+  border: 1px solid var(--cs-border-secondary);
+  border-radius: var(--cs-radius-lg);
+  box-shadow: var(--cs-shadow-sm);
+  overflow: hidden;
+}
+
+/* ── Component: Button ──────────────────────────────────────── */
+.cs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cs-space-2);
+  padding: var(--cs-space-2) var(--cs-space-4);
+  font-family: var(--cs-font-body);
+  font-size: var(--cs-text-sm);
+  font-weight: var(--cs-font-medium);
+  line-height: 1;
+  border-radius: var(--cs-radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--cs-duration-fast) var(--cs-ease-default);
+  white-space: nowrap;
+  text-decoration: none;
+  outline: none;
+}
+
+.cs-btn:focus-visible {
+  outline: 2px solid var(--cs-accent);
+  outline-offset: 2px;
+}
+
+.cs-btn:active {
+  transform: scale(0.97);
+}
+
+.cs-btn-primary {
+  background: var(--cs-accent);
+  color: white;
+  border-color: var(--cs-accent);
+}
+
+.cs-btn-primary:hover {
+  background: var(--cs-accent-hover);
+  border-color: var(--cs-accent-hover);
+}
+
+.cs-btn-secondary {
+  background: var(--cs-surface-secondary);
+  color: var(--cs-text-primary);
+  border-color: var(--cs-border-primary);
+}
+
+.cs-btn-secondary:hover {
+  background: var(--cs-surface-hover);
+  border-color: var(--cs-border-primary);
+}
+
+.cs-btn-ghost {
+  background: transparent;
+  color: var(--cs-text-secondary);
+  border-color: transparent;
+}
+
+.cs-btn-ghost:hover {
+  background: var(--cs-surface-hover);
+  color: var(--cs-text-primary);
+}
+
+.cs-btn-danger {
+  background: transparent;
+  color: var(--cs-error);
+  border-color: transparent;
+}
+
+.cs-btn-danger:hover {
+  background: var(--cs-error-light);
+}
+
+.cs-btn-sm {
+  padding: var(--cs-space-1) var(--cs-space-3);
+  font-size: var(--cs-text-xs);
+}
+
+.cs-btn-lg {
+  padding: var(--cs-space-3) var(--cs-space-6);
+  font-size: var(--cs-text-base);
+  border-radius: var(--cs-radius-lg);
+}
+
+.cs-btn-icon {
+  padding: var(--cs-space-2);
+  border-radius: var(--cs-radius-md);
+}
+
+/* ── Component: Input ───────────────────────────────────────── */
+.cs-input {
+  width: 100%;
+  padding: var(--cs-space-2) var(--cs-space-3);
+  font-family: var(--cs-font-body);
+  font-size: var(--cs-text-sm);
+  color: var(--cs-text-primary);
+  background: var(--cs-bg-primary);
+  border: 1px solid var(--cs-border-primary);
+  border-radius: var(--cs-radius-md);
+  outline: none;
+  transition: border-color var(--cs-duration-fast) var(--cs-ease-default),
+              box-shadow var(--cs-duration-fast) var(--cs-ease-default);
+}
+
+.cs-input::placeholder {
+  color: var(--cs-text-quaternary);
+}
+
+.cs-input:focus {
+  border-color: var(--cs-accent);
+  box-shadow: 0 0 0 3px var(--cs-accent-light);
+}
+
+.cs-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ── Component: Badge ───────────────────────────────────────── */
+.cs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cs-space-1);
+  padding: 2px var(--cs-space-2);
+  font-family: var(--cs-font-mono);
+  font-size: 10px;
+  font-weight: var(--cs-font-medium);
+  border-radius: var(--cs-radius-sm);
+  white-space: nowrap;
+}
+
+.cs-badge-accent {
+  background: var(--cs-accent-light);
+  color: var(--cs-accent);
+}
+
+.cs-badge-success {
+  background: var(--cs-success-light);
+  color: var(--cs-success);
+}
+
+.cs-badge-error {
+  background: var(--cs-error-light);
+  color: var(--cs-error);
+}
+
+.cs-badge-muted {
+  background: var(--cs-surface-secondary);
+  color: var(--cs-text-tertiary);
+}
+
+/* SQL badges */
+.cs-badge-select {
+  background: var(--cs-sql-select-bg);
+  color: var(--cs-sql-select);
+}
+
+.cs-badge-insert {
+  background: var(--cs-sql-insert-bg);
+  color: var(--cs-sql-insert);
+}
+
+.cs-badge-delete {
+  background: var(--cs-sql-delete-bg);
+  color: var(--cs-sql-delete);
+}
+
+.cs-badge-update {
+  background: var(--cs-sql-update-bg);
+  color: var(--cs-sql-update);
+}
+
+/* ── Component: Avatar ──────────────────────────────────────── */
+.cs-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--cs-radius-md);
+  font-weight: var(--cs-font-semibold);
+  color: white;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.cs-avatar-sm { width: 28px; height: 28px; font-size: 11px; }
+.cs-avatar-md { width: 36px; height: 36px; font-size: 14px; }
+.cs-avatar-lg { width: 48px; height: 48px; font-size: 18px; }
+.cs-avatar-xl { width: 64px; height: 64px; font-size: 24px; border-radius: var(--cs-radius-lg); }
+
+/* Avatar colors — muted, sophisticated */
+.cs-avatar-1 { background: #4F46E5; }
+.cs-avatar-2 { background: #0D9488; }
+.cs-avatar-3 { background: #7C3AED; }
+.cs-avatar-4 { background: #C2410C; }
+.cs-avatar-5 { background: #0369A1; }
+.cs-avatar-6 { background: #BE185D; }
+
+/* ── Component: Toast ───────────────────────────────────────── */
+.cs-toast-container {
+  position: fixed;
+  bottom: var(--cs-space-6);
+  right: var(--cs-space-6);
+  z-index: var(--cs-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cs-space-2);
+  width: 340px;
+  pointer-events: none;
+}
+
+.cs-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--cs-space-3);
+  padding: var(--cs-space-3) var(--cs-space-4);
+  background: var(--cs-surface-primary);
+  border: 1px solid var(--cs-border-secondary);
+  border-radius: var(--cs-radius-md);
+  box-shadow: var(--cs-shadow-lg);
+  font-size: var(--cs-text-sm);
+  font-weight: var(--cs-font-medium);
+  color: var(--cs-text-primary);
+  animation: cs-toast-in var(--cs-duration-slow) var(--cs-ease-out) forwards;
+}
+
+.cs-toast-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.cs-toast-success .cs-toast-icon { color: var(--cs-success); }
+.cs-toast-error .cs-toast-icon { color: var(--cs-error); }
+.cs-toast-info .cs-toast-icon { color: var(--cs-accent); }
+.cs-toast-warning .cs-toast-icon { color: var(--cs-warning); }
+
+.cs-toast-exit {
+  animation: cs-toast-out var(--cs-duration-normal) var(--cs-ease-default) forwards;
+}
+
+@keyframes cs-toast-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes cs-toast-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-8px); opacity: 0; }
+}
+
+/* ── Component: Modal / Dialog ──────────────────────────────── */
+dialog.cs-modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  background: var(--cs-surface-primary);
+  border: 1px solid var(--cs-border-secondary);
+  border-radius: var(--cs-radius-xl);
+  box-shadow: var(--cs-shadow-xl);
+  color: var(--cs-text-primary);
+  padding: 0;
+  max-width: 500px;
+  width: calc(100% - var(--cs-space-8));
+  overscroll-behavior: contain;
+}
+
+dialog.cs-modal::backdrop {
+  background: var(--cs-bg-overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+dialog.cs-modal[open] {
+  display: flex;
+  flex-direction: column;
+  animation: cs-modal-in var(--cs-duration-slow) var(--cs-ease-out) forwards;
+}
+
+@keyframes cs-modal-in {
+  from { transform: translateY(12px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ── Component: Tab Bar ─────────────────────────────────────── */
+.cs-tabs {
+  display: flex;
+  gap: var(--cs-space-1);
+  border-bottom: 1px solid var(--cs-border-secondary);
+}
+
+.cs-tab {
+  padding: var(--cs-space-2) var(--cs-space-3);
+  font-size: var(--cs-text-sm);
+  font-weight: var(--cs-font-medium);
+  color: var(--cs-text-tertiary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--cs-duration-fast) var(--cs-ease-default);
+  white-space: nowrap;
+}
+
+.cs-tab:hover {
+  color: var(--cs-text-primary);
+}
+
+.cs-tab-active {
+  color: var(--cs-text-primary);
+  border-bottom-color: var(--cs-accent);
+}
+
+/* ── Component: Table ───────────────────────────────────────── */
+.cs-table {
+  width: 100%;
+  font-family: var(--cs-font-mono);
+  font-size: var(--cs-text-xs);
+  border-collapse: collapse;
+}
+
+.cs-table th {
+  padding: var(--cs-space-2) var(--cs-space-3);
+  text-align: left;
+  font-weight: var(--cs-font-semibold);
+  color: var(--cs-text-secondary);
+  background: var(--cs-surface-secondary);
+  border-bottom: 1px solid var(--cs-border-primary);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.cs-table td {
+  padding: var(--cs-space-2) var(--cs-space-3);
+  color: var(--cs-text-primary);
+  border-bottom: 1px solid var(--cs-border-secondary);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-table tbody tr {
+  transition: background var(--cs-duration-fast) var(--cs-ease-default);
+}
+
+.cs-table tbody tr:hover {
+  background: var(--cs-surface-hover);
+}
+
+/* ── SQL Logger Styles ──────────────────────────────────────── */
+.cs-sql-entry {
+  padding: var(--cs-space-3);
+  border-radius: var(--cs-radius-md);
+  background: var(--cs-terminal-surface);
+  border: 1px solid var(--cs-terminal-border);
+  transition: background var(--cs-duration-fast) var(--cs-ease-default);
+}
+
+.cs-sql-entry:hover {
+  background: rgba(48, 54, 61, 0.6);
+}
+
+.cs-sql-entry-new {
+  animation: cs-sql-pulse 1.5s ease-out forwards;
+}
+
+@keyframes cs-sql-pulse {
+  0% { border-left: 3px solid var(--cs-sql-insert); background: rgba(52, 211, 153, 0.08); }
+  100% { border-left: 3px solid var(--cs-terminal-border); background: var(--cs-terminal-surface); }
+}
+
+/* ── Skeleton Loader ────────────────────────────────────────── */
+.cs-skeleton {
+  background: var(--cs-surface-secondary);
+  border-radius: var(--cs-radius-sm);
+  animation: cs-shimmer 1.8s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.cs-skeleton::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--cs-surface-hover) 50%,
+    transparent 100%
+  );
+  animation: cs-shimmer-slide 1.8s ease-in-out infinite;
+}
+
+@keyframes cs-shimmer-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Animations & Motion ────────────────────────────────────── */
+.cs-fade-in {
+  animation: cs-fade-in var(--cs-duration-slow) var(--cs-ease-out) forwards;
+}
+
+@keyframes cs-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cs-slide-up {
+  animation: cs-slide-up var(--cs-duration-slow) var(--cs-ease-out) forwards;
+}
+
+@keyframes cs-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Like heart animation */
+@keyframes cs-heart-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  75% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.cs-like-pop {
+  animation: cs-heart-pop 0.3s var(--cs-ease-spring);
+}
+
+/* Comment drawer expand */
+.cs-drawer-enter {
+  animation: cs-drawer-enter var(--cs-duration-slow) var(--cs-ease-out) forwards;
+  overflow: hidden;
+}
+
+@keyframes cs-drawer-enter {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 1000px; }
+}
+
+/* Blinking cursor for terminal */
+.cs-terminal-cursor {
+  animation: cs-blink 1s step-end infinite;
+}
+
+@keyframes cs-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Reduced Motion ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .cs-skeleton::after {
+    animation: none;
+  }
+}
+
+/* ── Focus Management ───────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--cs-accent);
+  outline-offset: 2px;
+}
+
+/* ── Query Mode Visibility ──────────────────────────────────── */
+body:not(.show-queries) .query-detail {
+  display: none !important;
+}
+
+.show-queries .query-detail {
+  animation: cs-fade-in var(--cs-duration-normal) var(--cs-ease-out);
+}
+
+/* ── Layout Transition ──────────────────────────────────────── */
+.cs-layout-transition {
+  transition: all var(--cs-duration-slow) var(--cs-ease-out);
+}
+
+/* ── Hashtag Pills ──────────────────────────────────────────── */
+.cs-hashtag {
+  color: var(--cs-accent);
+  font-weight: var(--cs-font-medium);
+  transition: opacity var(--cs-duration-fast) var(--cs-ease-default);
+}
+
+.cs-hashtag:hover {
+  opacity: 0.75;
+}
+
+/* ── Profile Banner ─────────────────────────────────────────── */
+.cs-profile-banner {
+  background: linear-gradient(135deg, var(--cs-accent) 0%, #7C3AED 100%);
+  position: relative;
+}
+
+.cs-profile-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, var(--cs-surface-primary) 100%);
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root {
+    --cs-text-5xl: 2.5rem;
+    --cs-text-4xl: 2rem;
+    --cs-text-3xl: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --cs-text-5xl: 2rem;
+    --cs-text-4xl: 1.75rem;
+    --cs-text-3xl: 1.5rem;
+  }
+}
+
+/* ── Skip Link ──────────────────────────────────────────────── */
+.cs-skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--cs-space-4);
+  padding: var(--cs-space-2) var(--cs-space-4);
+  background: var(--cs-accent);
+  color: white;
+  font-weight: var(--cs-font-semibold);
+  border-radius: var(--cs-radius-md);
+  z-index: 100;
+  transition: top var(--cs-duration-fast);
+}
+
+.cs-skip-link:focus {
+  top: var(--cs-space-4);
+}

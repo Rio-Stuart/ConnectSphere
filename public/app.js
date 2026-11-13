@@ -1,5 +1,5 @@
 // ConnectSphere — Social Media Platform & DBMS Engine
-// Frontend Application Logic v2.1 — Authentication & Perspective Mode
+// Frontend Application Logic v2.2 — Modern Design System & Perspective Engine
 // ====================================================================
 
 // ---- State ----
@@ -14,8 +14,19 @@ let currentLayout = 'split';
 let sqlLogEntries = [];
 let attachedFile = null; // { name, type, size, data, isImage }
 
+// Helper to trigger Lucide icon replacement after DOM mutations
+function refreshIcons() {
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    try {
+      lucide.createIcons();
+    } catch (e) {
+      console.warn('Lucide icon refresh:', e);
+    }
+  }
+}
+
 // ---- API Helper ----
-async function api(method, path, body = null) {
+async function api(method, path, body = null, silent = false) {
   const opts = {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -27,7 +38,7 @@ async function api(method, path, body = null) {
     const json = await res.json();
     if (!res.ok) {
       const errMsg = json.error || json.message || `HTTP ${res.status}`;
-      showToast(errMsg, 'error');
+      if (!silent) showToast(errMsg, 'error');
       if (json.query) logSql(json.query, json.params);
       throw new Error(errMsg);
     }
@@ -35,7 +46,7 @@ async function api(method, path, body = null) {
     if (json.query) logSql(json.query, json.params);
     return json;
   } catch (err) {
-    if (err.message && !err.message.startsWith('HTTP')) {
+    if (!silent && err.message && !err.message.startsWith('HTTP')) {
       if (err instanceof TypeError) {
         showToast('Network error — is the server running?', 'error');
       }
@@ -59,12 +70,12 @@ function detectQueryType(sql) {
 
 function badgeClass(type) {
   const map = {
-    SELECT: 'badge-select',
-    INSERT: 'badge-insert',
-    DELETE: 'badge-delete',
-    UPDATE: 'badge-update',
+    SELECT: 'cs-badge cs-badge-select',
+    INSERT: 'cs-badge cs-badge-insert',
+    DELETE: 'cs-badge cs-badge-delete',
+    UPDATE: 'cs-badge cs-badge-update',
   };
-  return map[type] || 'badge-select';
+  return map[type] || 'cs-badge cs-badge-select';
 }
 
 function logSql(query, params) {
@@ -76,28 +87,29 @@ function logSql(query, params) {
   const terminal = document.getElementById('sqlLogTerminal');
   if (!terminal) return;
 
-  const placeholder = terminal.querySelector('.text-slate-500');
+  const placeholder = terminal.querySelector('.text-\\[var\\(--cs-terminal-muted\\)\\]') || terminal.querySelector('.text-slate-500');
   if (placeholder && placeholder.textContent.includes('Initialized')) {
     placeholder.remove();
   }
 
   const div = document.createElement('div');
-  div.className = 'sql-entry sql-entry-new rounded-xl p-2.5 bg-slate-900/80 border border-slate-800/80';
+  div.className = 'cs-sql-entry cs-sql-entry-new mb-2';
   div.innerHTML = `
     <div class="flex items-center justify-between text-[10px] font-mono mb-1.5">
       <div class="flex items-center gap-1.5">
-        <span class="${badgeClass(type)} px-2 py-0.5 rounded-md font-bold">${type}</span>
-        <span class="text-indigo-300 font-semibold">Engine Result</span>
+        <span class="${badgeClass(type)}">${type}</span>
+        <span class="text-[var(--cs-accent)] font-semibold">Engine Intercept</span>
       </div>
-      <span class="text-slate-500">${time}</span>
+      <span class="text-[var(--cs-terminal-muted)]">${time}</span>
     </div>
     <div class="text-emerald-400 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">${escapeHtml(query)}</div>
-    ${params && params.length ? `<div class="text-slate-400 text-[10px] font-mono mt-1.5 pt-1 border-t border-slate-800/60">Bound Parameters: [${params.map(p => typeof p === 'string' ? `'${escapeHtml(p)}'` : p).join(', ')}]</div>` : ''}
+    ${params && params.length ? `<div class="text-[var(--cs-terminal-muted)] text-[10px] font-mono mt-1.5 pt-1 border-t border-[var(--cs-terminal-border)]">Bound Parameters: [${params.map(p => typeof p === 'string' ? `'${escapeHtml(p)}'` : p).join(', ')}]</div>` : ''}
   `;
   terminal.prepend(div);
 
   const countBadge = document.getElementById('queryCount');
   if (countBadge) countBadge.textContent = `${sqlLogEntries.length} queries`;
+  refreshIcons();
 }
 
 function clearSqlLogs() {
@@ -105,8 +117,8 @@ function clearSqlLogs() {
   const terminal = document.getElementById('sqlLogTerminal');
   if (terminal) {
     terminal.innerHTML = `
-      <div class="text-slate-500 flex items-center gap-2 text-xs font-mono">
-        <span class="terminal-cursor text-emerald-400">▋</span>
+      <div class="text-[var(--cs-terminal-muted)] flex items-center gap-2 text-xs font-mono">
+        <span class="cs-terminal-cursor text-emerald-400">▋</span>
         <span>Query logs cleared. Ready for next DDL/DML operation...</span>
       </div>
     `;
@@ -117,39 +129,47 @@ function clearSqlLogs() {
 }
 
 // ---- Toast Notifications ----
+const recentToasts = new Map();
+
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
   if (!container) return;
 
-  const colors = {
-    success: 'bg-emerald-600/90 border-emerald-500 text-white',
-    error: 'bg-rose-600/90 border-rose-500 text-white',
-    info: 'bg-indigo-600/90 border-indigo-500 text-white',
-    warning: 'bg-amber-600/90 border-amber-500 text-white',
-  };
+  // Deduplicate identical toasts within a 3-second window
+  const key = `${type}:${message}`;
+  const now = Date.now();
+  if (recentToasts.has(key) && (now - recentToasts.get(key)) < 3000) {
+    return;
+  }
+  recentToasts.set(key, now);
+
   const icons = {
-    success: 'fa-circle-check',
-    error: 'fa-circle-exclamation',
-    info: 'fa-circle-info',
-    warning: 'fa-triangle-exclamation',
+    success: 'check-circle',
+    error: 'alert-circle',
+    info: 'info',
+    warning: 'alert-triangle',
   };
 
   const toast = document.createElement('div');
-  toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border backdrop-blur-md shadow-2xl text-xs font-medium ${colors[type] || colors.info} toast-enter`;
+  toast.className = `cs-toast cs-toast-${type}`;
+  toast.setAttribute('role', 'alert');
   toast.innerHTML = `
-    <i class="fa-solid ${icons[type] || icons.info} text-sm"></i>
+    <i data-lucide="${icons[type] || 'info'}" class="cs-toast-icon"></i>
     <span class="flex-1">${escapeHtml(message)}</span>
-    <button onclick="this.parentElement.remove()" class="text-white/60 hover:text-white ml-1">
-      <i class="fa-solid fa-xmark text-xs"></i>
+    <button onclick="this.parentElement.remove()" class="cs-btn-ghost cs-btn-icon text-[var(--cs-text-tertiary)] hover:text-[var(--cs-text-primary)]" style="padding:4px" aria-label="Dismiss notification">
+      <i data-lucide="x" class="w-3.5 h-3.5"></i>
     </button>
   `;
   container.appendChild(toast);
+  refreshIcons();
 
   setTimeout(() => {
-    toast.classList.remove('toast-enter');
-    toast.classList.add('toast-exit');
-    setTimeout(() => toast.remove(), 250);
-  }, 3200);
+    toast.classList.add('cs-toast-exit');
+    setTimeout(() => {
+      toast.remove();
+      recentToasts.delete(key);
+    }, 250);
+  }, 4000);
 }
 
 // ---- Utilities ----
@@ -168,16 +188,16 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-function getFileIconClass(fileType, fileName) {
+function getFileIconName(fileType, fileName) {
   const type = (fileType || '').toLowerCase();
   const ext = (fileName || '').split('.').pop().toLowerCase();
-  if (type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return 'fa-solid fa-file-image text-emerald-400';
-  if (type.includes('pdf') || ext === 'pdf') return 'fa-solid fa-file-pdf text-rose-400';
-  if (['doc', 'docx'].includes(ext) || type.includes('word')) return 'fa-solid fa-file-word text-blue-400';
-  if (['xls', 'xlsx', 'csv'].includes(ext) || type.includes('excel') || type.includes('spreadsheet')) return 'fa-solid fa-file-excel text-emerald-400';
-  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'fa-solid fa-file-zipper text-amber-400';
-  if (['js', 'ts', 'py', 'java', 'c', 'cpp', 'html', 'css', 'json', 'sql'].includes(ext)) return 'fa-solid fa-file-code text-indigo-400';
-  return 'fa-solid fa-file-lines text-slate-400';
+  if (type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
+  if (type.includes('pdf') || ext === 'pdf') return 'file-text';
+  if (['doc', 'docx'].includes(ext) || type.includes('word')) return 'file-text';
+  if (['xls', 'xlsx', 'csv'].includes(ext) || type.includes('excel') || type.includes('spreadsheet')) return 'table';
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'archive';
+  if (['js', 'ts', 'py', 'java', 'c', 'cpp', 'html', 'css', 'json', 'sql'].includes(ext)) return 'file-code';
+  return 'file';
 }
 
 function handleFileSelected(event, mode) {
@@ -222,33 +242,34 @@ function renderAttachmentPreview() {
 
   if (attachedFile.isImage) {
     container.innerHTML = `
-      <div class="relative inline-block rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 mt-1 max-w-sm shadow-md">
-        <img src="${attachedFile.data}" alt="Preview" class="max-h-48 w-full object-cover rounded-lg" />
-        <button type="button" onclick="removeAttachedFile()" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white flex items-center justify-center transition shadow-md" title="Remove image">
-          <i class="fa-solid fa-xmark text-xs"></i>
+      <div class="relative inline-block rounded-xl overflow-hidden border border-[var(--cs-border-secondary)] bg-[var(--cs-surface-secondary)] mt-1 max-w-sm shadow-sm">
+        <img src="${attachedFile.data}" alt="Attachment Preview" class="max-h-48 w-full object-cover rounded-lg" />
+        <button type="button" onclick="removeAttachedFile()" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-[var(--cs-bg-overlay)] hover:bg-black/80 text-white flex items-center justify-center transition shadow-sm" title="Remove image">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
         </button>
-        <div class="px-2.5 py-1 text-[11px] text-slate-300 font-mono flex items-center justify-between bg-slate-900/90 border-t border-slate-800">
+        <div class="px-2.5 py-1 text-[11px] text-[var(--cs-text-secondary)] font-mono flex items-center justify-between bg-[var(--cs-surface-primary)] border-t border-[var(--cs-border-secondary)]">
           <span class="truncate max-w-[200px]">${escapeHtml(attachedFile.name)}</span>
-          <span class="text-slate-500">${formatBytes(attachedFile.size)}</span>
+          <span class="text-[var(--cs-text-tertiary)]">${formatBytes(attachedFile.size)}</span>
         </div>
       </div>
     `;
   } else {
     container.innerHTML = `
-      <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 mt-1 max-w-md shadow-md">
-        <div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-lg">
-          <i class="${getFileIconClass(attachedFile.type, attachedFile.name)}"></i>
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-[var(--cs-surface-secondary)] border border-[var(--cs-border-secondary)] mt-1 max-w-md shadow-sm">
+        <div class="w-10 h-10 rounded-lg bg-[var(--cs-surface-primary)] border border-[var(--cs-border-secondary)] flex items-center justify-center text-[var(--cs-accent)]">
+          <i data-lucide="${getFileIconName(attachedFile.type, attachedFile.name)}" class="w-5 h-5"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-xs font-semibold text-slate-200 truncate">${escapeHtml(attachedFile.name)}</div>
-          <div class="text-[10px] text-slate-500 font-mono">${formatBytes(attachedFile.size)}</div>
+          <div class="text-xs font-semibold text-[var(--cs-text-primary)] truncate">${escapeHtml(attachedFile.name)}</div>
+          <div class="text-[10px] text-[var(--cs-text-tertiary)] font-mono">${formatBytes(attachedFile.size)}</div>
         </div>
-        <button type="button" onclick="removeAttachedFile()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-300 flex items-center justify-center transition" title="Remove file">
-          <i class="fa-solid fa-xmark text-xs"></i>
+        <button type="button" onclick="removeAttachedFile()" class="cs-btn-ghost cs-btn-icon text-[var(--cs-text-tertiary)] hover:text-[var(--cs-error)]" title="Remove file">
+          <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
     `;
   }
+  refreshIcons();
 }
 
 function removeAttachedFile() {
@@ -271,6 +292,7 @@ function openMediaLightbox(url, title = 'Image Preview') {
   } else {
     modal.setAttribute('open', '');
   }
+  refreshIcons();
 }
 
 function closeMediaModal() {
@@ -303,7 +325,7 @@ if (mediaModalEl) {
 function formatPostContent(text) {
   if (!text) return '';
   const escaped = escapeHtml(text);
-  return escaped.replace(/#([a-zA-Z0-9_]+)/g, '<span class="hashtag-pill">#$1</span>');
+  return escaped.replace(/#([a-zA-Z0-9_]+)/g, '<span class="cs-hashtag font-medium">#$1</span>');
 }
 
 function insertTag(tag) {
@@ -332,22 +354,22 @@ function getInitial(name) {
   return name ? name.charAt(0).toUpperCase() : '?';
 }
 
-const avatarColors = [
-  'bg-gradient-to-tr from-blue-600 to-indigo-600',
-  'bg-gradient-to-tr from-emerald-600 to-teal-600',
-  'bg-gradient-to-tr from-purple-600 to-pink-600',
-  'bg-gradient-to-tr from-amber-600 to-orange-600',
-  'bg-gradient-to-tr from-cyan-600 to-blue-600',
-  'bg-gradient-to-tr from-rose-600 to-red-600',
+const avatarColorClasses = [
+  'cs-avatar-1',
+  'cs-avatar-2',
+  'cs-avatar-3',
+  'cs-avatar-4',
+  'cs-avatar-5',
+  'cs-avatar-6',
 ];
 
 function avatarColor(id) {
-  return avatarColors[(id - 1) % avatarColors.length];
+  return avatarColorClasses[(id - 1) % avatarColorClasses.length];
 }
 
-// ---- AUTHENTICATION & LOGIN WORKFLOW ----
+// ---- NAVIGATION & VIEW SWITCHING ----
 
-function showLoginScreen() {
+function showLandingPage() {
   activeUserId = null;
   activeUser = null;
   isAdmin = false;
@@ -355,18 +377,38 @@ function showLoginScreen() {
   document.body.classList.remove('show-queries', 'is-admin');
   sessionStorage.removeItem('connectsphere_active_user');
 
-  const loginScreen = document.getElementById('loginScreen');
-  const appScreen = document.getElementById('appScreen');
-  const navSession = document.getElementById('navSessionContainer');
-  const adminControls = document.getElementById('adminHeaderControls');
+  const landing = document.getElementById('landingPage');
+  const login = document.getElementById('loginScreen');
+  const header = document.getElementById('appHeader');
+  const app = document.getElementById('appScreen');
 
-  if (loginScreen) loginScreen.classList.remove('hidden');
-  if (appScreen) appScreen.classList.add('hidden');
-  if (navSession) navSession.classList.add('hidden');
-  if (adminControls) adminControls.classList.add('hidden');
+  if (landing) landing.classList.remove('hidden');
+  if (login) login.classList.add('hidden');
+  if (header) header.classList.add('hidden');
+  if (app) app.classList.add('hidden');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  refreshIcons();
+}
+
+function showLoginFromLanding() {
+  const landing = document.getElementById('landingPage');
+  const login = document.getElementById('loginScreen');
+  if (landing) landing.classList.add('hidden');
+  if (login) login.classList.remove('hidden');
 
   renderLoginAccounts();
   updateLoginSqlPreview();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  refreshIcons();
+}
+
+function showLandingFromLogin() {
+  showLandingPage();
+}
+
+function showLoginScreen() {
+  showLoginFromLanding();
 }
 
 async function enterAppSession(userId) {
@@ -391,12 +433,16 @@ async function enterAppSession(userId) {
     document.body.classList.remove('is-admin');
   }
 
+  const landing = document.getElementById('landingPage');
   const loginScreen = document.getElementById('loginScreen');
   const appScreen = document.getElementById('appScreen');
+  const appHeader = document.getElementById('appHeader');
   const navSession = document.getElementById('navSessionContainer');
   const adminControls = document.getElementById('adminHeaderControls');
 
+  if (landing) landing.classList.add('hidden');
   if (loginScreen) loginScreen.classList.add('hidden');
+  if (appHeader) appHeader.classList.remove('hidden');
   if (appScreen) appScreen.classList.remove('hidden');
   if (navSession) navSession.classList.remove('hidden');
 
@@ -418,53 +464,72 @@ async function enterAppSession(userId) {
   if (roleEl) {
     if (isAdmin) {
       roleEl.textContent = 'Admin / DBA';
-      roleEl.className = 'text-[9px] px-1.5 py-0.5 rounded font-mono font-bold admin-pill';
+      roleEl.className = 'text-[10px] px-2 py-0.5 rounded font-mono font-bold cs-badge cs-badge-error';
     } else {
-      roleEl.textContent = 'User View';
-      roleEl.className = 'text-[9px] text-slate-400 font-mono hidden md:inline';
+      roleEl.textContent = 'Member';
+      roleEl.className = 'text-[10px] text-[var(--cs-text-tertiary)] font-mono hidden md:inline';
     }
   }
 
   const avatarEl = document.getElementById('navUserAvatar');
   if (avatarEl && activeUser) {
-    avatarEl.className = `w-5 h-5 rounded-full ${isAdmin ? 'bg-rose-600' : avatarColor(activeUser.user_id)} flex items-center justify-center text-[10px] font-bold text-white shrink-0`;
-    avatarEl.textContent = isAdmin ? '🛡️' : getInitial(activeUser.username);
+    avatarEl.className = `w-5 h-5 rounded-full ${isAdmin ? 'bg-[var(--cs-error)]' : avatarColor(activeUser.user_id)} flex items-center justify-center text-[10px] font-bold text-white shrink-0`;
+    avatarEl.textContent = getInitial(activeUser.username);
+  }
+
+  // Immediately hydrate active user sidebar card & composer avatar to prevent unstyled flash
+  if (activeUser) {
+    const cardAvatar = document.getElementById('activeUserAvatar');
+    if (cardAvatar) {
+      cardAvatar.className = `cs-avatar cs-avatar-xl ${avatarColor(activeUser.user_id)} ring-4 ring-[var(--cs-surface-primary)] cursor-pointer hover:scale-105 transition-transform`;
+      cardAvatar.textContent = getInitial(activeUser.username);
+    }
+    const cardUsername = document.getElementById('activeUserName') || document.getElementById('activeUserUsername');
+    if (cardUsername) cardUsername.textContent = `@${activeUser.username}`;
+    const cardEmail = document.getElementById('activeUserEmail');
+    if (cardEmail) cardEmail.textContent = activeUser.email || '';
+    const postFormAvatar = document.getElementById('postFormAvatar');
+    if (postFormAvatar) {
+      postFormAvatar.className = `cs-avatar cs-avatar-md ${avatarColor(activeUser.user_id)}`;
+      postFormAvatar.textContent = getInitial(activeUser.username);
+    }
   }
 
   updateQueryToggleButton();
 
-  // Layout mode:
-  // Admin opens in Split View by default (Social feed + DB Inspector side by side)
-  // Regular users open in Feed View by default (Clean social media feed centered)
+  // Layout mode: Admin defaults to split, normal users to feed focus
   if (isAdmin) {
     setLayout('split');
   } else {
     setLayout('feed');
   }
 
+  renderFeedSkeleton(3);
   await renderActiveUserCard();
   await loadPosts();
   if (isAdmin || showQueries) {
     await loadTableData(currentTableTab, true);
   }
   updatePostSqlPreview();
+  refreshIcons();
 }
 
 function toggleQueryView() {
   showQueries = !showQueries;
   if (showQueries) {
     document.body.classList.add('show-queries');
-    showToast('Query Inspection Mode Enabled (SQL details revealed)', 'info');
+    showToast('SQL Query Inspection Mode enabled', 'info');
     setLayout('split');
     loadTableData(currentTableTab, true);
   } else {
     document.body.classList.remove('show-queries');
-    showToast('Social Media Mode Enabled (Query details hidden)', 'info');
+    showToast('Social View active (SQL queries tucked)', 'info');
     if (!isAdmin) {
       setLayout('feed');
     }
   }
   updateQueryToggleButton();
+  refreshIcons();
 }
 
 function updateQueryToggleButton() {
@@ -474,29 +539,31 @@ function updateQueryToggleButton() {
   if (!btn || !label) return;
 
   if (showQueries) {
-    btn.className = 'flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 transition';
+    btn.className = 'cs-btn cs-btn-secondary cs-btn-sm border-[var(--cs-accent)] text-[var(--cs-accent)] shadow-sm';
     label.textContent = 'Hide Queries';
-    if (icon) icon.className = 'fa-solid fa-code text-white';
+    if (icon) icon.setAttribute('data-lucide', 'code-2');
   } else {
-    btn.className = 'flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-semibold transition';
+    btn.className = 'cs-btn cs-btn-secondary cs-btn-sm';
     label.textContent = 'Show Queries';
-    if (icon) icon.className = 'fa-solid fa-code text-indigo-400';
+    if (icon) icon.setAttribute('data-lucide', 'code-2');
   }
+  refreshIcons();
 }
 
 function renderLoginAccounts() {
   const grid = document.getElementById('loginAccountsGrid');
   if (!grid) return;
 
-  // Filter out admin so admin must be typed manually
+  // Filter out admin so admin must be entered manually with password
   const regularUsers = users.filter(u => u.username.toLowerCase() !== 'admin');
 
   grid.innerHTML = regularUsers.map(u => `
-    <button type="button" onclick="selectLoginAccount('${escapeHtml(u.username)}')" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 text-xs text-slate-300 hover:text-white transition shadow-sm group">
+    <button type="button" onclick="selectLoginAccount('${escapeHtml(u.username)}')" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--cs-surface-secondary)] hover:bg-[var(--cs-surface-hover)] border border-[var(--cs-border-secondary)] hover:border-[var(--cs-accent)] text-xs text-[var(--cs-text-primary)] transition shadow-sm group">
       <span class="w-5 h-5 rounded-full ${avatarColor(u.user_id)} text-white flex items-center justify-center text-[10px] font-bold group-hover:scale-105 transition-transform">${getInitial(u.username)}</span>
       <span class="font-medium">@${escapeHtml(u.username)}</span>
     </button>
   `).join('');
+  refreshIcons();
 }
 
 function selectLoginAccount(username) {
@@ -507,11 +574,11 @@ function selectLoginAccount(username) {
     pInput.value = ''; // Do NOT autofill password
     pInput.focus();
   }
-  showToast(`Selected @${username}. Enter your password to sign in.`, 'info');
+  showToast(`Selected @${username}. Enter password to sign in.`, 'info');
 }
 
 function updateLoginSqlPreview() {
-  // Kept clean without hints
+  // Clean minimal form
 }
 
 function togglePasswordVisibility() {
@@ -520,11 +587,12 @@ function togglePasswordVisibility() {
   if (!pInput || !icon) return;
   if (pInput.type === 'password') {
     pInput.type = 'text';
-    icon.className = 'fa-solid fa-eye-slash';
+    icon.setAttribute('data-lucide', 'eye-off');
   } else {
     pInput.type = 'password';
-    icon.className = 'fa-solid fa-eye';
+    icon.setAttribute('data-lucide', 'eye');
   }
+  refreshIcons();
 }
 
 async function handleLoginSubmit(event) {
@@ -541,7 +609,7 @@ async function handleLoginSubmit(event) {
     if (user.is_admin || user.username.toLowerCase() === 'admin') {
       showToast('Signed in as Administrator (DBA Privileges Unlocked)', 'success');
     } else {
-      showToast(`Signed in as @${user.username}`, 'success');
+      showToast(`Welcome back, @${user.username}`, 'success');
     }
     await loadUsers();
     await enterAppSession(user.user_id);
@@ -551,8 +619,8 @@ async function handleLoginSubmit(event) {
 }
 
 function handleLogout() {
-  showLoginScreen();
-  showToast('Logged out of account session', 'info');
+  showLandingPage();
+  showToast('Logged out of session', 'info');
 }
 
 // ---- Active User Profile Card ----
@@ -564,7 +632,7 @@ async function renderActiveUserCard() {
 
     const cardAvatar = document.getElementById('activeUserAvatar');
     if (cardAvatar) {
-      cardAvatar.className = `w-20 h-20 rounded-2xl ring-4 ring-slate-900 ${avatarColor(u.user_id)} flex items-center justify-center text-3xl font-bold shadow-xl shrink-0 text-white`;
+      cardAvatar.className = `cs-avatar cs-avatar-xl ${avatarColor(u.user_id)} ring-4 ring-[var(--cs-surface-primary)] cursor-pointer hover:scale-105 transition-transform`;
       cardAvatar.textContent = getInitial(u.username);
     }
 
@@ -589,10 +657,36 @@ async function renderActiveUserCard() {
     // Composer avatar
     const formAvatar = document.getElementById('postFormAvatar');
     if (formAvatar) {
-      formAvatar.className = `w-10 h-10 rounded-xl ${avatarColor(u.user_id)} flex items-center justify-center text-sm font-bold shrink-0 text-white shadow-md`;
+      formAvatar.className = `cs-avatar cs-avatar-md ${avatarColor(u.user_id)} shrink-0 mt-0.5`;
       formAvatar.textContent = getInitial(u.username);
     }
+    refreshIcons();
   } catch (e) { /* handled */ }
+}
+
+// ---- Skeleton Loaders ----
+function renderFeedSkeleton(count = 3) {
+  const container = document.getElementById('postsStream');
+  if (!container) return;
+  container.innerHTML = Array(count).fill(`
+    <div class="cs-card p-5 space-y-3">
+      <div class="flex items-center gap-3">
+        <div class="cs-skeleton w-9 h-9 rounded-lg"></div>
+        <div class="space-y-1.5 flex-1">
+          <div class="cs-skeleton h-3 w-28 rounded"></div>
+          <div class="cs-skeleton h-2.5 w-16 rounded"></div>
+        </div>
+      </div>
+      <div class="space-y-2 py-1">
+        <div class="cs-skeleton h-3 w-full rounded"></div>
+        <div class="cs-skeleton h-3 w-4/5 rounded"></div>
+      </div>
+      <div class="flex gap-4 pt-2 border-t border-[var(--cs-border-secondary)]">
+        <div class="cs-skeleton h-6 w-20 rounded-md"></div>
+        <div class="cs-skeleton h-6 w-24 rounded-md"></div>
+      </div>
+    </div>
+  `).join('');
 }
 
 // ---- Posts & Feed Stream ----
@@ -605,10 +699,11 @@ async function loadPosts() {
     const stream = document.getElementById('postsStream');
     if (stream) {
       stream.innerHTML = `
-        <div class="text-center py-10 text-slate-500 font-mono text-xs">
-          <i class="fa-solid fa-triangle-exclamation text-xl text-amber-500 mb-2"></i>
+        <div class="text-center py-10 text-[var(--cs-text-tertiary)] font-mono text-xs cs-card p-6">
+          <i data-lucide="alert-triangle" class="w-6 h-6 mx-auto mb-2 text-amber-500"></i>
           <p>Failed to query posts from database.</p>
         </div>`;
+      refreshIcons();
     }
   }
 }
@@ -621,11 +716,12 @@ function renderPostsStream(posts) {
 
   if (!posts || posts.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-12 text-slate-500 bg-slate-900/60 rounded-2xl border border-slate-800 p-8 shadow-sm">
-        <i class="fa-solid fa-newspaper text-3xl mb-3 text-slate-600"></i>
-        <p class="text-sm font-semibold text-slate-300">No posts in this feed yet</p>
-        <p class="text-xs text-slate-500 mt-1">Publish a new post above to execute an INSERT INTO Posts query!</p>
+      <div class="text-center py-12 text-[var(--cs-text-tertiary)] cs-card p-8 shadow-sm">
+        <i data-lucide="file-text" class="w-8 h-8 mx-auto mb-3 opacity-40"></i>
+        <p class="text-sm font-semibold text-[var(--cs-text-primary)]">No posts in this feed yet</p>
+        <p class="text-xs text-[var(--cs-text-tertiary)] mt-1">Publish a post above to execute an INSERT INTO Posts query!</p>
       </div>`;
+    refreshIcons();
     return;
   }
 
@@ -635,23 +731,22 @@ function renderPostsStream(posts) {
     const isFollowing = Boolean(p.is_following);
 
     return `
-    <article class="glass-card rounded-2xl p-4 sm:p-5 transition-all space-y-3.5 relative" data-post-id="${p.post_id}">
+    <article class="cs-card p-4 sm:p-5 transition-all space-y-3 relative" data-post-id="${p.post_id}">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div onclick="openUserProfile(${p.user_id})" class="w-10 h-10 rounded-xl ${avatarColor(p.user_id)} flex items-center justify-center text-sm font-bold text-white shadow-md shrink-0 cursor-pointer hover:scale-105 transition-transform" title="Click to view @${escapeHtml(p.username)}'s profile">
+          <div onclick="openUserProfile(${p.user_id})" class="cs-avatar cs-avatar-md ${avatarColor(p.user_id)} cursor-pointer hover:scale-105 transition-transform" title="Click to view @${escapeHtml(p.username)}'s profile">
             ${getInitial(p.username)}
           </div>
           <div>
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span onclick="openUserProfile(${p.user_id})" class="font-bold text-sm text-white hover:underline cursor-pointer hover:text-indigo-300 transition-colors" title="Click to view @${escapeHtml(p.username)}'s profile">@${escapeHtml(p.username)}</span>
-              <i class="fa-solid fa-circle-check text-blue-400 text-[11px]" title="Verified User"></i>
-              <span class="query-detail text-[10px] text-indigo-300 font-mono bg-indigo-500/10 px-1.5 py-0.2 rounded border border-indigo-500/20">user_id: ${p.user_id}</span>
+              <span onclick="openUserProfile(${p.user_id})" class="font-bold text-sm text-[var(--cs-text-primary)] hover:underline cursor-pointer hover:text-[var(--cs-accent)] transition-colors" title="Click to view @${escapeHtml(p.username)}'s profile">@${escapeHtml(p.username)}</span>
+              <span class="query-detail cs-badge cs-badge-accent font-mono">user_id: ${p.user_id}</span>
             </div>
-            <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono mt-0.5">
+            <div class="flex items-center gap-2 text-[11px] text-[var(--cs-text-tertiary)] font-mono mt-0.5">
               <span>${timeAgo(p.created_at)}</span>
               <span class="query-detail">•</span>
-              <span class="query-detail text-slate-500">PK post_id: #${p.post_id}</span>
+              <span class="query-detail">PK post_id: #${p.post_id}</span>
             </div>
           </div>
         </div>
@@ -659,92 +754,93 @@ function renderPostsStream(posts) {
         <!-- Follow / Delete Controls -->
         <div class="flex items-center gap-2">
           ${!isOwn ? `
-            <button onclick="toggleFollow(${p.user_id})" class="text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 shadow-sm ${isFollowing ? 'border-slate-700 bg-slate-800 text-emerald-400 hover:bg-rose-500/15 hover:border-rose-500/40 hover:text-rose-300' : 'border-indigo-500/50 bg-indigo-600/15 text-indigo-300 hover:bg-indigo-600/30'}" title="${isFollowing ? 'Click to Unfollow (DELETE FROM Followers)' : 'Click to Follow (INSERT INTO Followers)'}">
-              <i class="fa-solid ${isFollowing ? 'fa-user-check text-emerald-400' : 'fa-user-plus text-indigo-400'} text-[11px]"></i>
+            <button onclick="toggleFollow(${p.user_id})" class="cs-btn cs-btn-sm ${isFollowing ? 'cs-btn-secondary' : 'cs-btn-primary'}" title="${isFollowing ? 'Click to Unfollow (DELETE FROM Followers)' : 'Click to Follow (INSERT INTO Followers)'}">
+              <i data-lucide="${isFollowing ? 'user-check' : 'user-plus'}" class="w-3.5 h-3.5"></i>
               <span>${isFollowing ? 'Following' : 'Follow'}</span>
             </button>
           ` : `
-            <button onclick="handleDeletePost(${p.post_id})" class="text-xs text-rose-400 hover:text-rose-300 p-2 rounded-lg hover:bg-rose-500/10 transition-colors" title="Delete Post (Demonstrates ON DELETE CASCADE to Comments & Likes)">
-              <i class="fa-solid fa-trash-can"></i>
+            <button onclick="handleDeletePost(${p.post_id})" class="cs-btn-ghost cs-btn-icon text-[var(--cs-text-tertiary)] hover:text-[var(--cs-error)]" title="Delete Post (Demonstrates ON DELETE CASCADE to Comments & Likes)">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           `}
         </div>
       </div>
 
       <!-- Post Body -->
-      <p class="text-[13.5px] text-slate-100 leading-relaxed font-sans">${formatPostContent(p.content)}</p>
+      <p class="text-[14px] text-[var(--cs-text-primary)] leading-relaxed font-sans">${formatPostContent(p.content)}</p>
 
       <!-- Media / File Attachment -->
       ${p.media_url ? `
         <div class="mt-2.5">
           ${(p.file_type && p.file_type.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg)$/i.test(p.media_url) ? `
-            <div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950/60 max-h-96 flex items-center justify-center cursor-pointer group" onclick="openMediaLightbox('${escapeHtml(p.media_url)}', '${escapeHtml(p.file_name || 'Post Image')}')" title="Click to view full size">
+            <div class="rounded-xl overflow-hidden border border-[var(--cs-border-secondary)] bg-[var(--cs-surface-secondary)] max-h-96 flex items-center justify-center cursor-pointer group" onclick="openMediaLightbox('${escapeHtml(p.media_url)}', '${escapeHtml(p.file_name || 'Post Image')}')" title="Click to view full size">
               <img src="${escapeHtml(p.media_url)}" alt="Post image" class="max-h-96 w-full object-contain rounded-xl group-hover:scale-[1.01] transition-transform duration-200" loading="lazy" />
             </div>
           ` : `
-            <a href="${escapeHtml(p.media_url)}" download="${escapeHtml(p.file_name || 'attachment')}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 p-3 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 transition group text-left">
-              <div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-lg">
-                <i class="${getFileIconClass(p.file_type, p.file_name)}"></i>
+            <a href="${escapeHtml(p.media_url)}" download="${escapeHtml(p.file_name || 'attachment')}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 p-3 rounded-xl bg-[var(--cs-surface-secondary)] hover:bg-[var(--cs-surface-hover)] border border-[var(--cs-border-secondary)] transition group text-left">
+              <div class="w-10 h-10 rounded-lg bg-[var(--cs-surface-primary)] border border-[var(--cs-border-secondary)] flex items-center justify-center text-lg text-[var(--cs-accent)]">
+                <i data-lucide="${getFileIconName(p.file_type, p.file_name)}" class="w-5 h-5"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="text-xs font-semibold text-slate-200 group-hover:text-indigo-300 transition truncate">${escapeHtml(p.file_name || 'Attached File')}</div>
-                <div class="text-[10px] text-slate-500 font-mono flex items-center gap-1.5"><i class="fa-solid fa-download text-[9px]"></i> Click to download attachment</div>
+                <div class="text-xs font-semibold text-[var(--cs-text-primary)] group-hover:text-[var(--cs-accent)] transition truncate">${escapeHtml(p.file_name || 'Attached File')}</div>
+                <div class="text-[10px] text-[var(--cs-text-tertiary)] font-mono flex items-center gap-1.5"><i data-lucide="download" class="w-3 h-3"></i> Download attachment</div>
               </div>
-              <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-slate-300 transition pr-1"></i>
+              <i data-lucide="external-link" class="w-3.5 h-3.5 text-[var(--cs-text-tertiary)] group-hover:text-[var(--cs-text-primary)] transition pr-1"></i>
             </a>
           `}
         </div>
       ` : ''}
 
-      <!-- DBMS Relational Architecture Meta Chip -->
-      <div class="query-detail bg-slate-950/70 rounded-xl px-3 py-1.5 border border-slate-800/80 font-mono text-[10px] text-slate-400 flex items-center justify-between flex-wrap gap-1">
-        <span class="text-indigo-300 flex items-center gap-1">
-          <i class="fa-solid fa-network-wired text-[9px] text-indigo-400"></i>
-          Relational Link: <code class="text-amber-400">Posts.user_id (${p.user_id})</code> ➔ <code class="text-blue-400">Users.user_id (${p.user_id})</code>
+      <!-- DBMS Relational Architecture Meta Chip (Query Inspection Mode) -->
+      <div class="query-detail bg-[var(--cs-surface-secondary)] rounded-lg px-3 py-1.5 border border-[var(--cs-border-secondary)] font-mono text-[10px] text-[var(--cs-text-secondary)] flex items-center justify-between flex-wrap gap-1">
+        <span class="text-[var(--cs-accent)] flex items-center gap-1">
+          <i data-lucide="git-branch" class="w-3 h-3"></i>
+          Relational Link: <code class="text-[var(--cs-warning)] font-semibold">Posts.user_id (${p.user_id})</code> ➔ <code class="text-[var(--cs-info)] font-semibold">Users.user_id (${p.user_id})</code>
         </span>
-        <span class="text-slate-500">ON DELETE CASCADE</span>
+        <span class="cs-badge cs-badge-accent">ON DELETE CASCADE</span>
       </div>
 
       <!-- Interaction Bar -->
-      <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
-        <div class="flex items-center gap-3">
+      <div class="flex items-center justify-between pt-2 border-t border-[var(--cs-border-secondary)] text-xs">
+        <div class="flex items-center gap-2">
           <!-- Like Button -->
-          <button onclick="toggleLike(${p.post_id})" class="flex items-center gap-1.5 font-semibold px-3 py-1.5 rounded-xl transition-all ${liked ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 shadow-sm shadow-rose-500/10' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}" title="${liked ? 'DELETE FROM Likes' : 'INSERT INTO Likes'}">
-            <i class="fa-${liked ? 'solid' : 'regular'} fa-heart ${liked ? 'like-pop text-rose-500' : ''}"></i>
-            <span>${p.like_count || 0} Likes</span>
+          <button onclick="toggleLike(${p.post_id})" class="cs-btn cs-btn-sm ${liked ? 'text-[var(--cs-error)] bg-[var(--cs-error-light)]' : 'cs-btn-ghost text-[var(--cs-text-secondary)]'}" title="${liked ? 'DELETE FROM Likes' : 'INSERT INTO Likes'}">
+            <i data-lucide="heart" class="w-4 h-4 ${liked ? 'fill-current cs-like-pop' : ''}"></i>
+            <span>${p.like_count || 0}</span>
           </button>
 
           <!-- Comment Button -->
-          <button onclick="toggleComments(${p.post_id})" class="flex items-center gap-1.5 font-medium px-3 py-1.5 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-slate-800/60 transition">
-            <i class="fa-regular fa-comment text-slate-400"></i>
-            <span>${p.comment_count || 0} Comments</span>
+          <button onclick="toggleComments(${p.post_id})" class="cs-btn cs-btn-ghost cs-btn-sm text-[var(--cs-text-secondary)]" title="Toggle comments drawer">
+            <i data-lucide="message-circle" class="w-4 h-4"></i>
+            <span>${p.comment_count || 0}</span>
           </button>
         </div>
 
-        <button onclick="inspectPostComments(${p.post_id})" class="query-detail text-slate-500 hover:text-indigo-300 text-xs font-mono transition flex items-center gap-1 px-2 py-1 rounded" title="Inspect comments join query">
-          <i class="fa-solid fa-code text-[10px]"></i>
+        <button onclick="inspectPostComments(${p.post_id})" class="query-detail cs-btn cs-btn-ghost cs-btn-sm text-[var(--cs-text-tertiary)] hover:text-[var(--cs-accent)] font-mono text-xs" title="Inspect comments join query">
+          <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
           <span class="hidden sm:inline">Q4 Query</span>
         </button>
       </div>
 
       <!-- Threaded Comments Drawer -->
-      <div id="comments-${p.post_id}" class="hidden pt-3 border-t border-slate-800 space-y-3">
+      <div id="comments-${p.post_id}" class="hidden pt-3 border-t border-[var(--cs-border-secondary)] space-y-3">
         <!-- New Comment Input -->
         <div class="flex items-center gap-2">
-          <input id="commentInput-${p.post_id}" type="text" maxlength="300" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-sans" placeholder="Write a comment (executes INSERT INTO Comments)..." onkeydown="if(event.key==='Enter')handleAddComment(${p.post_id})" />
-          <button onclick="handleAddComment(${p.post_id})" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center gap-1 shrink-0">
-            <i class="fa-solid fa-paper-plane text-[10px]"></i>
+          <input id="commentInput-${p.post_id}" type="text" maxlength="300" class="cs-input flex-1 text-xs" placeholder="Write a comment (executes INSERT INTO Comments)..." onkeydown="if(event.key==='Enter')handleAddComment(${p.post_id})" />
+          <button onclick="handleAddComment(${p.post_id})" class="cs-btn cs-btn-primary cs-btn-sm shrink-0">
+            <i data-lucide="send" class="w-3 h-3"></i>
             <span class="hidden sm:inline">Comment</span>
           </button>
         </div>
 
         <!-- Comments List -->
         <div id="commentsList-${p.post_id}" class="space-y-2 pt-1">
-          <div class="text-slate-500 text-xs font-mono py-1">Loading comments...</div>
+          <div class="text-[var(--cs-text-tertiary)] text-xs font-mono py-1">Loading comments...</div>
         </div>
       </div>
     </article>`;
   }).join('');
+  refreshIcons();
 }
 
 // Live composer SQL preview
@@ -815,7 +911,7 @@ async function toggleLike(postId) {
   try {
     const res = await api('POST', `/posts/${postId}/like`, { user_id: activeUserId });
     const isLiked = res.data?.action === 'liked';
-    showToast(isLiked ? 'Post liked! (INSERT INTO Likes)' : 'Post unliked (DELETE FROM Likes)', 'success');
+    showToast(isLiked ? 'Liked post (INSERT INTO Likes)' : 'Unliked post (DELETE FROM Likes)', 'success');
     await loadPosts();
     await loadTableData(currentTableTab, true);
   } catch (e) { /* handled */ }
@@ -827,9 +923,11 @@ async function toggleComments(postId) {
   if (!section) return;
   if (section.classList.contains('hidden')) {
     section.classList.remove('hidden');
+    section.classList.add('cs-drawer-enter');
     await loadComments(postId);
   } else {
     section.classList.add('hidden');
+    section.classList.remove('cs-drawer-enter');
   }
 }
 
@@ -840,22 +938,23 @@ async function loadComments(postId) {
     if (!list) return;
     const comments = res.data;
     if (!comments || comments.length === 0) {
-      list.innerHTML = '<div class="text-slate-500 font-mono text-[11px] py-2 text-center bg-slate-950/60 rounded-xl">No comments on this post yet.</div>';
+      list.innerHTML = '<div class="text-[var(--cs-text-tertiary)] font-mono text-[11px] py-2 text-center bg-[var(--cs-surface-secondary)] rounded-lg">No comments on this post yet.</div>';
       return;
     }
     list.innerHTML = comments.map(c => `
-      <div class="flex items-start gap-2.5 bg-slate-950/80 rounded-xl p-2.5 border border-slate-800/60">
-        <div onclick="openUserProfile(${c.user_id})" class="w-7 h-7 rounded-lg ${avatarColor(c.user_id)} flex items-center justify-center text-[10px] font-bold shrink-0 text-white shadow-sm cursor-pointer hover:scale-105 transition-transform" title="Click to view @${escapeHtml(c.username)}'s profile">${getInitial(c.username)}</div>
+      <div class="flex items-start gap-2.5 bg-[var(--cs-surface-secondary)] rounded-lg p-2.5 border border-[var(--cs-border-secondary)]">
+        <div onclick="openUserProfile(${c.user_id})" class="cs-avatar cs-avatar-sm ${avatarColor(c.user_id)} cursor-pointer hover:scale-105 transition-transform" title="Click to view @${escapeHtml(c.username)}'s profile">${getInitial(c.username)}</div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <span onclick="openUserProfile(${c.user_id})" class="font-bold text-xs text-indigo-300 hover:underline cursor-pointer" title="Click to view @${escapeHtml(c.username)}'s profile">@${escapeHtml(c.username)}</span>
-            <span class="text-[10px] text-slate-500 font-mono">${timeAgo(c.created_at)}</span>
-            <span class="query-detail text-[9px] text-slate-600 font-mono ml-auto">c_id: ${c.comment_id}</span>
+            <span onclick="openUserProfile(${c.user_id})" class="font-bold text-xs text-[var(--cs-accent)] hover:underline cursor-pointer" title="Click to view @${escapeHtml(c.username)}'s profile">@${escapeHtml(c.username)}</span>
+            <span class="text-[10px] text-[var(--cs-text-tertiary)] font-mono">${timeAgo(c.created_at)}</span>
+            <span class="query-detail text-[9px] text-[var(--cs-text-tertiary)] font-mono ml-auto">c_id: ${c.comment_id}</span>
           </div>
-          <p class="text-slate-200 text-xs mt-1 leading-relaxed">${escapeHtml(c.comment_text)}</p>
+          <p class="text-[var(--cs-text-primary)] text-xs mt-1 leading-relaxed">${escapeHtml(c.comment_text)}</p>
         </div>
       </div>
     `).join('');
+    refreshIcons();
   } catch (e) { /* handled */ }
 }
 
@@ -919,6 +1018,7 @@ function openModal() {
     const input = document.getElementById('newUsername');
     if (input) input.focus();
     updateSqlPreview();
+    refreshIcons();
   }
 }
 
@@ -961,7 +1061,7 @@ async function openUserProfile(targetUserId) {
   // Initial loading state in modal
   const streamEl = document.getElementById('modalProfilePostsStream');
   if (streamEl) {
-    streamEl.innerHTML = '<div class="py-6 text-center text-slate-500 font-mono text-xs"><i class="fa-solid fa-spinner spinner mr-1"></i> Querying user profile and posts...</div>';
+    streamEl.innerHTML = '<div class="py-6 text-center text-[var(--cs-text-tertiary)] font-mono text-xs"><i data-lucide="loader-2" class="w-4 h-4 mx-auto animate-spin mb-1"></i> Querying user profile and posts...</div>';
   }
 
   // Open modal natively
@@ -970,6 +1070,7 @@ async function openUserProfile(targetUserId) {
   } else {
     modal.setAttribute('open', '');
   }
+  refreshIcons();
 
   try {
     // 1. Fetch user data with follower stats & follow status relative to viewer
@@ -983,8 +1084,8 @@ async function openUserProfile(targetUserId) {
     // Populate Modal Header & Identity
     const avatarEl = document.getElementById('modalProfileAvatar');
     if (avatarEl) {
-      avatarEl.className = `w-16 h-16 rounded-2xl ring-4 ring-slate-900 ${avatarColor(u.user_id)} flex items-center justify-center text-2xl font-bold text-white shadow-xl shrink-0`;
-      avatarEl.textContent = u.username.toLowerCase() === 'admin' ? '🛡️' : getInitial(u.username);
+      avatarEl.className = `cs-avatar cs-avatar-xl ${avatarColor(u.user_id)} ring-4 ring-[var(--cs-surface-primary)] shrink-0`;
+      avatarEl.textContent = getInitial(u.username);
     }
 
     const titleEl = document.getElementById('modalProfileTitle');
@@ -994,10 +1095,10 @@ async function openUserProfile(targetUserId) {
     if (roleBadge) {
       if (u.username.toLowerCase() === 'admin') {
         roleBadge.textContent = 'Administrator / DBA';
-        roleBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded font-bold admin-pill';
+        roleBadge.className = 'cs-badge cs-badge-error font-bold';
       } else {
-        roleBadge.textContent = 'ConnectSphere Member';
-        roleBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded border border-indigo-500/20 text-indigo-300 bg-indigo-500/10';
+        roleBadge.textContent = 'Member';
+        roleBadge.className = 'cs-badge cs-badge-accent';
       }
     }
 
@@ -1034,15 +1135,15 @@ async function openUserProfile(targetUserId) {
       const isOwnProfile = Number(u.user_id) === Number(activeUserId);
       if (isOwnProfile) {
         actionContainer.innerHTML = `
-          <span class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-            <i class="fa-solid fa-user-check text-indigo-400 text-xs"></i>
+          <span class="cs-badge cs-badge-muted py-1.5 px-3 flex items-center gap-1.5">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 text-[var(--cs-accent)]"></i>
             <span>Your Profile</span>
           </span>`;
       } else {
         const isFollowing = Boolean(u.is_following);
         actionContainer.innerHTML = `
-          <button onclick="handleProfileFollowToggle(${u.user_id})" class="text-xs font-semibold px-4 py-2 rounded-xl border transition-all flex items-center gap-1.5 shadow-sm ${isFollowing ? 'border-slate-700 bg-slate-800 text-emerald-400 hover:bg-rose-500/15 hover:border-rose-500/40 hover:text-rose-300' : 'border-indigo-500/50 bg-indigo-600 text-white hover:bg-indigo-500'}">
-            <i class="fa-solid ${isFollowing ? 'fa-user-check text-emerald-400' : 'fa-user-plus text-white'} text-[11px]"></i>
+          <button onclick="handleProfileFollowToggle(${u.user_id})" class="cs-btn cs-btn-sm ${isFollowing ? 'cs-btn-secondary' : 'cs-btn-primary'}">
+            <i data-lucide="${isFollowing ? 'user-check' : 'user-plus'}" class="w-3.5 h-3.5"></i>
             <span>${isFollowing ? 'Following' : 'Follow'}</span>
           </button>`;
       }
@@ -1054,54 +1155,54 @@ async function openUserProfile(targetUserId) {
 
     if (streamEl) {
       if (posts.length === 0) {
-        streamEl.innerHTML = '<div class="text-slate-500 font-mono text-xs py-6 text-center bg-slate-950/50 rounded-xl">No posts published yet.</div>';
+        streamEl.innerHTML = '<div class="text-[var(--cs-text-tertiary)] font-mono text-xs py-6 text-center bg-[var(--cs-surface-secondary)] rounded-lg">No posts published yet.</div>';
       } else {
         streamEl.innerHTML = posts.map(p => {
           const liked = Boolean(p.user_liked || p.liked_by_user);
           return `
-            <div class="p-3 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1.5">
-              <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
-                <span class="text-slate-400">${timeAgo(p.created_at)}</span>
-                <span class="query-detail text-[10px] text-slate-500">PK post_id: #${p.post_id}</span>
+            <div class="p-3 bg-[var(--cs-surface-secondary)] border border-[var(--cs-border-secondary)] rounded-lg space-y-1.5">
+              <div class="flex items-center justify-between text-xs text-[var(--cs-text-tertiary)] font-mono">
+                <span>${timeAgo(p.created_at)}</span>
+                <span class="query-detail text-[10px]">PK post_id: #${p.post_id}</span>
               </div>
-              <p class="text-xs text-slate-100 font-sans leading-relaxed">${formatPostContent(p.content)}</p>
+              <p class="text-xs text-[var(--cs-text-primary)] font-sans leading-relaxed">${formatPostContent(p.content)}</p>
               ${p.media_url ? `
                 <div class="mt-2">
                   ${(p.file_type && p.file_type.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg)$/i.test(p.media_url) ? `
-                    <div class="rounded-lg overflow-hidden border border-slate-800 bg-slate-950/60 max-h-48 flex items-center justify-center cursor-pointer group" onclick="openMediaLightbox('${escapeHtml(p.media_url)}', '${escapeHtml(p.file_name || 'Post Image')}')">
+                    <div class="rounded-lg overflow-hidden border border-[var(--cs-border-secondary)] bg-[var(--cs-surface-primary)] max-h-48 flex items-center justify-center cursor-pointer group" onclick="openMediaLightbox('${escapeHtml(p.media_url)}', '${escapeHtml(p.file_name || 'Post Image')}')">
                       <img src="${escapeHtml(p.media_url)}" alt="Post image" class="max-h-48 w-full object-cover rounded-lg group-hover:scale-[1.01] transition-transform duration-200" loading="lazy" />
                     </div>
                   ` : `
-                    <a href="${escapeHtml(p.media_url)}" download="${escapeHtml(p.file_name || 'attachment')}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2.5 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition group text-left">
-                      <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-sm">
-                        <i class="${getFileIconClass(p.file_type, p.file_name)}"></i>
+                    <a href="${escapeHtml(p.media_url)}" download="${escapeHtml(p.file_name || 'attachment')}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2.5 p-2 rounded-lg bg-[var(--cs-surface-primary)] border border-[var(--cs-border-secondary)] hover:border-[var(--cs-border-primary)] transition group text-left">
+                      <div class="w-8 h-8 rounded-lg bg-[var(--cs-surface-secondary)] flex items-center justify-center text-[var(--cs-accent)]">
+                        <i data-lucide="${getFileIconName(p.file_type, p.file_name)}" class="w-4 h-4"></i>
                       </div>
                       <div class="flex-1 min-w-0">
-                        <div class="text-[11px] font-semibold text-slate-200 group-hover:text-indigo-300 transition truncate">${escapeHtml(p.file_name || 'Attached File')}</div>
-                        <div class="text-[9px] text-slate-500 font-mono">Download</div>
+                        <div class="text-[11px] font-semibold text-[var(--cs-text-primary)] group-hover:text-[var(--cs-accent)] transition truncate">${escapeHtml(p.file_name || 'Attached File')}</div>
+                        <div class="text-[9px] text-[var(--cs-text-tertiary)] font-mono">Download</div>
                       </div>
                     </a>
                   `}
                 </div>
               ` : ''}
-              <div class="flex items-center gap-4 text-xs pt-1 border-t border-slate-800/60 font-mono text-slate-400">
-                <span class="flex items-center gap-1 ${liked ? 'text-rose-400' : ''}">
-                  <i class="fa-${liked ? 'solid' : 'regular'} fa-heart text-[11px] ${liked ? 'text-rose-500' : ''}"></i>
-                  ${p.like_count || 0}
+              <div class="flex items-center gap-4 text-xs pt-1 border-t border-[var(--cs-border-secondary)] font-mono text-[var(--cs-text-tertiary)]">
+                <span class="flex items-center gap-1 ${liked ? 'text-[var(--cs-error)]' : ''}">
+                  <i data-lucide="heart" class="w-3.5 h-3.5 ${liked ? 'fill-current' : ''}"></i>
+                  <span>${p.like_count || 0}</span>
                 </span>
                 <span class="flex items-center gap-1">
-                  <i class="fa-regular fa-comment text-[11px]"></i>
-                  ${p.comment_count || 0}
+                  <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                  <span>${p.comment_count || 0}</span>
                 </span>
               </div>
             </div>`;
         }).join('');
       }
     }
-
+    refreshIcons();
   } catch (err) {
     if (streamEl) {
-      streamEl.innerHTML = '<div class="text-rose-400 font-mono text-xs py-4 text-center">Failed to load user profile.</div>';
+      streamEl.innerHTML = '<div class="text-[var(--cs-error)] font-mono text-xs py-4 text-center">Failed to load user profile.</div>';
     }
   }
 }
@@ -1182,12 +1283,13 @@ function setFeedFilter(filter) {
     const btn = document.getElementById(`filter${f.charAt(0).toUpperCase() + f.slice(1)}`);
     if (btn) {
       if (f === filter) {
-        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow';
+        btn.className = 'px-3 py-1.5 rounded text-xs font-semibold transition bg-[var(--cs-surface-primary)] text-[var(--cs-text-primary)] shadow-sm';
       } else {
-        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800';
+        btn.className = 'px-3 py-1.5 rounded text-xs font-medium transition text-[var(--cs-text-tertiary)] hover:text-[var(--cs-text-primary)]';
       }
     }
   });
+  renderFeedSkeleton(2);
   loadPosts();
 }
 
@@ -1200,29 +1302,33 @@ function setLayout(layout) {
 
   ['Split', 'Feed', 'Inspector'].forEach(l => {
     const btn = document.getElementById(`layout${l}`);
-    if (btn) btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white';
+    if (btn) btn.className = 'w-7 h-7 flex items-center justify-center rounded text-xs transition text-[var(--cs-text-tertiary)] hover:text-[var(--cs-text-primary)]';
   });
 
   if (layout === 'split') {
-    document.getElementById('layoutSplit').className = 'px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-indigo-600 text-white shadow';
-    if (main) main.className = 'max-w-7xl mx-auto p-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 layout-transition';
+    const splitBtn = document.getElementById('layoutSplit');
+    if (splitBtn) splitBtn.className = 'w-7 h-7 flex items-center justify-center rounded text-xs transition bg-[var(--cs-surface-primary)] text-[var(--cs-text-primary)] shadow-sm';
+    if (main) main.className = 'max-w-7xl mx-auto p-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 cs-layout-transition';
     if (feed) feed.className = 'lg:col-span-7 space-y-5';
     if (inspector) inspector.className = 'lg:col-span-5 space-y-5';
     if (feed) feed.classList.remove('hidden');
     if (inspector) inspector.classList.remove('hidden');
   } else if (layout === 'feed') {
-    document.getElementById('layoutFeed').className = 'px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-indigo-600 text-white shadow';
-    if (main) main.className = 'max-w-4xl mx-auto p-4 sm:px-6 grid grid-cols-1 gap-6 layout-transition';
+    const feedBtn = document.getElementById('layoutFeed');
+    if (feedBtn) feedBtn.className = 'w-7 h-7 flex items-center justify-center rounded text-xs transition bg-[var(--cs-surface-primary)] text-[var(--cs-text-primary)] shadow-sm';
+    if (main) main.className = 'max-w-4xl mx-auto p-4 sm:px-6 grid grid-cols-1 gap-6 cs-layout-transition';
     if (feed) feed.className = 'col-span-1 space-y-5';
     if (feed) feed.classList.remove('hidden');
     if (inspector) inspector.classList.add('hidden');
   } else {
-    document.getElementById('layoutInspector').className = 'px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-indigo-600 text-white shadow';
-    if (main) main.className = 'max-w-5xl mx-auto p-4 sm:px-6 grid grid-cols-1 gap-6 layout-transition';
+    const insBtn = document.getElementById('layoutInspector');
+    if (insBtn) insBtn.className = 'w-7 h-7 flex items-center justify-center rounded text-xs transition bg-[var(--cs-surface-primary)] text-[var(--cs-text-primary)] shadow-sm';
+    if (main) main.className = 'max-w-5xl mx-auto p-4 sm:px-6 grid grid-cols-1 gap-6 cs-layout-transition';
     if (inspector) inspector.className = 'col-span-1 space-y-5';
     if (feed) feed.classList.add('hidden');
     if (inspector) inspector.classList.remove('hidden');
   }
+  refreshIcons();
 }
 
 // ---- Database Tables Explorer ----
@@ -1233,9 +1339,9 @@ function setTableTab(tab) {
     const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
     if (btn) {
       if (t === tab) {
-        btn.className = 'px-3.5 py-2 text-xs font-semibold transition text-indigo-400 border-b-2 border-indigo-400 shrink-0';
+        btn.className = 'cs-tab cs-tab-active';
       } else {
-        btn.className = 'px-3.5 py-2 text-xs font-medium transition text-slate-400 hover:text-slate-200 border-b-2 border-transparent shrink-0';
+        btn.className = 'cs-tab';
       }
     }
   });
@@ -1245,15 +1351,16 @@ function setTableTab(tab) {
 async function loadTableData(table = currentTableTab, silent = false) {
   const container = document.getElementById('tableContent');
   if (!silent && container) {
-    container.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs font-mono"><i class="fa-solid fa-spinner spinner mr-1"></i> Querying table data...</div>';
+    container.innerHTML = '<div class="p-6 text-center text-[var(--cs-text-tertiary)] text-xs font-mono"><i data-lucide="loader-2" class="w-4 h-4 mx-auto animate-spin mb-1"></i> Querying table data...</div>';
+    refreshIcons();
   }
 
   try {
-    const res = await api('GET', `/tables/${table}`);
+    const res = await api('GET', `/tables/${table}`, null, silent);
     renderTable(res.data || [], table);
   } catch (e) {
     if (!silent && container) {
-      container.innerHTML = '<div class="p-6 text-center text-rose-400 text-xs font-mono">Failed to load table data</div>';
+      container.innerHTML = '<div class="p-6 text-center text-[var(--cs-error)] text-xs font-mono">Failed to load table data</div>';
     }
   }
 }
@@ -1267,7 +1374,7 @@ function renderTable(data, tableName) {
   const container = document.getElementById('tableContent');
   if (!container) return;
   if (!data || data.length === 0) {
-    container.innerHTML = `<div class="p-6 text-center text-slate-500 font-mono text-xs">Table '${tableName}' is empty (0 rows).</div>`;
+    container.innerHTML = `<div class="p-6 text-center text-[var(--cs-text-tertiary)] font-mono text-xs">Table '${tableName}' is empty (0 rows).</div>`;
     return;
   }
 
@@ -1276,56 +1383,57 @@ function renderTable(data, tableName) {
   // Primary and Foreign Key badge helper
   const getColBadge = (c, tbl) => {
     const t = (tbl || '').toLowerCase();
-    if (c === 'user_id' && t === 'users') return '<span class="text-[9px] bg-amber-500/20 text-amber-400 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
-    if (c === 'post_id' && t === 'posts') return '<span class="text-[9px] bg-amber-500/20 text-amber-400 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
-    if (c === 'comment_id' && t === 'comments') return '<span class="text-[9px] bg-amber-500/20 text-amber-400 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
-    if (c === 'like_id' && t === 'likes') return '<span class="text-[9px] bg-amber-500/20 text-amber-400 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
-    if (c === 'id' && t === 'followers') return '<span class="text-[9px] bg-amber-500/20 text-amber-400 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
+    if (c === 'user_id' && t === 'users') return '<span class="text-[9px] bg-amber-500/20 text-amber-500 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
+    if (c === 'post_id' && t === 'posts') return '<span class="text-[9px] bg-amber-500/20 text-amber-500 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
+    if (c === 'comment_id' && t === 'comments') return '<span class="text-[9px] bg-amber-500/20 text-amber-500 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
+    if (c === 'like_id' && t === 'likes') return '<span class="text-[9px] bg-amber-500/20 text-amber-500 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
+    if (c === 'id' && t === 'followers') return '<span class="text-[9px] bg-amber-500/20 text-amber-500 px-1 py-0.2 rounded ml-1 font-mono font-bold">PK</span>';
 
     if (c === 'user_id' || c === 'post_id' || c === 'follower_id' || c === 'following_id') {
-      return '<span class="text-[9px] bg-blue-500/20 text-blue-400 px-1 py-0.2 rounded ml-1 font-mono font-bold">FK</span>';
+      return '<span class="text-[9px] bg-blue-500/20 text-blue-500 px-1 py-0.2 rounded ml-1 font-mono font-bold">FK</span>';
     }
     return '';
   };
 
   const headerRow = columns.map(c =>
-    `<th class="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider bg-slate-900 border-b border-r border-slate-800">${escapeHtml(c)}${getColBadge(c, tableName)}</th>`
+    `<th class="px-3 py-2 text-left text-[11px] font-semibold text-[var(--cs-text-secondary)] uppercase tracking-wider bg-[var(--cs-surface-secondary)] border-b border-[var(--cs-border-primary)]">${escapeHtml(c)}${getColBadge(c, tableName)}</th>`
   ).join('');
 
-  const bodyRows = data.map((row, idx) =>
-    `<tr class="border-b border-slate-800/60 ${idx % 2 === 0 ? 'bg-slate-950' : 'bg-slate-900/40'} hover:bg-slate-800/40 transition">${columns.map(c => {
+  const bodyRows = data.map((row) =>
+    `<tr class="border-b border-[var(--cs-border-secondary)] hover:bg-[var(--cs-surface-hover)] transition">${columns.map(c => {
       let val = row[c];
       if (val === null || val === undefined) {
-        val = '<span class="text-slate-600 font-mono italic">NULL</span>';
+        val = '<span class="text-[var(--cs-text-tertiary)] font-mono italic">NULL</span>';
       } else {
         const isDateCol = c.endsWith('_at') || c.endsWith('_date');
         if (isDateCol && typeof val === 'string' && val.length >= 10) {
           const d = new Date(val.replace(' ', 'T'));
           if (!isNaN(d.getTime())) {
-            val = `<span class="text-slate-300 font-mono text-[11px]">${d.toLocaleString()}</span>`;
+            val = `<span class="text-[var(--cs-text-secondary)] font-mono text-[11px]">${d.toLocaleString()}</span>`;
           } else {
             val = escapeHtml(String(val));
           }
         } else if (c === 'username' && row.user_id) {
-          val = `<span onclick="openUserProfile(${row.user_id})" class="text-indigo-300 font-semibold cursor-pointer hover:underline" title="View profile">@${escapeHtml(String(val))}</span>`;
+          val = `<span onclick="openUserProfile(${row.user_id})" class="text-[var(--cs-accent)] font-semibold cursor-pointer hover:underline" title="View profile">@${escapeHtml(String(val))}</span>`;
         } else {
           val = escapeHtml(String(val));
         }
       }
-      return `<td class="px-3 py-2 text-xs text-slate-300 font-mono border-r border-slate-800/60 max-w-[240px] truncate">${val}</td>`;
+      return `<td class="px-3 py-2 text-xs text-[var(--cs-text-primary)] font-mono max-w-[240px] truncate">${val}</td>`;
     }).join('')}</tr>`
   ).join('');
 
   container.innerHTML = `
-    <table class="w-full text-left font-mono text-xs border-collapse">
-      <thead class="sticky top-0 bg-slate-900 z-10"><tr>${headerRow}</tr></thead>
+    <table class="cs-table w-full text-left font-mono text-xs border-collapse">
+      <thead class="sticky top-0 z-10"><tr>${headerRow}</tr></thead>
       <tbody>${bodyRows}</tbody>
     </table>
-    <div class="px-3 py-2 text-[10px] text-slate-500 border-t border-slate-800 bg-slate-950 flex items-center justify-between font-mono">
+    <div class="px-3 py-2 text-[10px] text-[var(--cs-text-tertiary)] border-t border-[var(--cs-border-secondary)] bg-[var(--cs-surface-secondary)] flex items-center justify-between font-mono">
       <span>${data.length} row${data.length !== 1 ? 's' : ''} in table</span>
-      <span><span class="text-amber-400 font-bold">PK</span> = Primary Key, <span class="text-blue-400 font-bold">FK</span> = Foreign Key</span>
+      <span><span class="text-amber-500 font-bold">PK</span> = Primary Key, <span class="text-blue-500 font-bold">FK</span> = Foreign Key</span>
     </div>
   `;
+  refreshIcons();
 }
 
 // ---- Analytical Queries (DBMS Lab) ----
@@ -1353,28 +1461,29 @@ async function runAnalyticalQuery(num, dynamicId = null) {
 
   resultPanel.classList.remove('hidden');
   resultTitle.textContent = info.title;
-  resultBody.innerHTML = '<div class="text-slate-500 font-mono text-xs py-3 text-center"><i class="fa-solid fa-spinner spinner mr-1.5"></i> Executing query...</div>';
+  resultBody.innerHTML = '<div class="text-[var(--cs-text-tertiary)] font-mono text-xs py-3 text-center"><i data-lucide="loader-2" class="w-4 h-4 mx-auto animate-spin mb-1"></i> Executing query...</div>';
+  refreshIcons();
 
   try {
     const res = await api('GET', requestPath);
     const data = res.data;
 
     if (!data || data.length === 0) {
-      resultBody.innerHTML = '<div class="text-slate-500 font-mono text-xs py-2 text-center">0 rows returned.</div>';
+      resultBody.innerHTML = '<div class="text-[var(--cs-text-tertiary)] font-mono text-xs py-2 text-center">0 rows returned.</div>';
       return;
     }
 
     const columns = Object.keys(data[0]);
     const headerRow = columns.map(c =>
-      `<th class="px-2.5 py-1.5 text-left text-[10px] font-semibold text-purple-400 uppercase tracking-wider border-b border-slate-800 bg-slate-900">${escapeHtml(c)}</th>`
+      `<th class="px-2.5 py-1.5 text-left text-[10px] font-semibold text-[var(--cs-accent)] uppercase tracking-wider border-b border-[var(--cs-border-secondary)] bg-[var(--cs-surface-secondary)]">${escapeHtml(c)}</th>`
     ).join('');
 
-    const bodyRows = data.map((row, idx) =>
-      `<tr class="border-b border-slate-800/60 ${idx % 2 === 0 ? 'bg-slate-950' : 'bg-slate-900/50'}">${columns.map(c => {
+    const bodyRows = data.map((row) =>
+      `<tr class="border-b border-[var(--cs-border-secondary)] hover:bg-[var(--cs-surface-hover)]">${columns.map(c => {
         let val = row[c];
-        if (val === null || val === undefined) val = '<span class="text-slate-600">NULL</span>';
+        if (val === null || val === undefined) val = '<span class="text-[var(--cs-text-tertiary)]">NULL</span>';
         else val = escapeHtml(String(val));
-        return `<td class="px-2.5 py-1.5 text-xs text-slate-300 font-mono">${val}</td>`;
+        return `<td class="px-2.5 py-1.5 text-xs text-[var(--cs-text-primary)] font-mono">${val}</td>`;
       }).join('')}</tr>`
     ).join('');
 
@@ -1385,12 +1494,13 @@ async function runAnalyticalQuery(num, dynamicId = null) {
           <tbody>${bodyRows}</tbody>
         </table>
       </div>
-      <div class="mt-2 text-[10px] text-slate-500 font-mono text-right">${data.length} row${data.length !== 1 ? 's' : ''} returned</div>
+      <div class="mt-2 text-[10px] text-[var(--cs-text-tertiary)] font-mono text-right">${data.length} row${data.length !== 1 ? 's' : ''} returned</div>
     `;
 
     showToast(`${info.title} executed`, 'success');
+    refreshIcons();
   } catch (e) {
-    resultBody.innerHTML = '<div class="text-rose-400 font-mono text-xs py-2 text-center">Query execution failed.</div>';
+    resultBody.innerHTML = '<div class="text-[var(--cs-error)] font-mono text-xs py-2 text-center">Query execution failed.</div>';
   }
 }
 
@@ -1414,7 +1524,7 @@ async function handleResetDB() {
 // ---- Load Users ----
 async function loadUsers() {
   try {
-    const res = await api('GET', '/users');
+    const res = await api('GET', '/users', null, true);
     users = res.data || [];
   } catch (e) {
     users = [];
@@ -1445,6 +1555,8 @@ function applyTheme(theme) {
   }
 
   updateThemeToggleButton(theme);
+  syncSplineTheme(theme);
+  refreshIcons();
 }
 
 function updateThemeToggleButton(theme) {
@@ -1455,12 +1567,12 @@ function updateThemeToggleButton(theme) {
 
   const isLight = theme === 'light';
   if (isLight) {
-    icon.className = 'fa-solid fa-moon text-indigo-600 text-xs';
+    icon.setAttribute('data-lucide', 'moon');
     btn.title = 'Switch to Dark Theme';
     btn.setAttribute('aria-label', 'Switch to Dark Theme');
     if (label) label.textContent = 'Light';
   } else {
-    icon.className = 'fa-solid fa-sun text-amber-400 text-xs';
+    icon.setAttribute('data-lucide', 'sun');
     btn.title = 'Switch to Light Theme';
     btn.setAttribute('aria-label', 'Switch to Light Theme');
     if (label) label.textContent = 'Dark';
@@ -1468,13 +1580,128 @@ function updateThemeToggleButton(theme) {
 }
 
 function toggleTheme() {
-  const current = getCurrentTheme();
-  const next = current === 'dark' ? 'light' : 'dark';
+  const isDark = document.documentElement.classList.contains('dark');
+  const next = isDark ? 'light' : 'dark';
   try {
     localStorage.setItem('connectsphere_theme', next);
   } catch (_) {}
   applyTheme(next);
-  showToast(next === 'light' ? 'Switched to Light Theme ☀️' : 'Switched to Dark Theme 🌙', 'info');
+  showToast(next === 'light' ? 'Switched to Light Theme' : 'Switched to Dark Theme', 'info');
+}
+
+// ---- Spline 3D Interactive Mascot ----
+let splineApp = null;
+let splineLoaded = false;
+let speechTimeout = null;
+let greetingIdx = 0;
+
+const splineGreetings = [
+  "🤖 ConnectSphere DBMS Mascot ready!",
+  "⚡ Relational indexing active!",
+  "🔍 Tracking cursor coordinates in real time!",
+  "🚀 Normalized to Boyce-Codd Normal Form!",
+  "✨ Click me anytime to say hello!"
+];
+
+function debounce(fn, ms) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+async function initSpline3D() {
+  const container = document.getElementById('splineContainer');
+  const canvas = document.getElementById('splineCanvas');
+  const loader = document.getElementById('splineLoader');
+  const fallback = document.getElementById('splineFallback');
+  if (!canvas) return;
+
+  const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  try {
+    const { Application } = await import('https://unpkg.com/@splinetool/runtime@2.0.183/build/runtime.js');
+    splineApp = new Application(canvas);
+    window.splineApp = splineApp;
+
+    await splineApp.load('./assets/scene.splinecode');
+    splineLoaded = true;
+    window.splineLoaded = true;
+
+    // Set transparent background for seamless integration with light and dark mode
+    splineApp.setBackgroundColor('transparent');
+
+    // Global cursor tracking so the robot head actively follows pointer across the entire landing page
+    if (!prefersReducedMotion && typeof splineApp.setGlobalEvents === 'function') {
+      splineApp.setGlobalEvents(true);
+    }
+
+    // Synchronize initial theme
+    const isDark = document.documentElement.classList.contains('dark');
+    syncSplineTheme(isDark ? 'dark' : 'light');
+
+    // Reveal canvas smoothly
+    canvas.style.opacity = '1';
+    canvas.classList.remove('opacity-0');
+    canvas.classList.add('opacity-100');
+    if (loader) {
+      loader.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => loader.remove(), 400);
+    }
+
+    // Touch & Click Interactions
+    canvas.addEventListener('click', handleSplineClick);
+    canvas.addEventListener('touchend', handleSplineClick);
+
+    // Responsive Canvas Resize
+    window.addEventListener('resize', debounce(() => {
+      if (splineApp && typeof splineApp.setSize === 'function' && container) {
+        const rect = container.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          splineApp.setSize(rect.width, rect.height);
+        }
+      }
+    }, 150));
+
+  } catch (err) {
+    console.warn('Spline 3D initialization failed, activating graceful fallback:', err);
+    if (loader) loader.classList.add('hidden');
+    if (fallback) fallback.classList.remove('hidden');
+  }
+}
+
+function syncSplineTheme(theme) {
+  if (!splineApp) return;
+  const isDark = theme === 'dark';
+  try {
+    splineApp.setBackgroundColor('transparent');
+    if (splineApp._scene) {
+      splineApp._scene.traverse(obj => {
+        if (obj.isLight && obj.type === 'HemisphereLight') {
+          obj.intensity = isDark ? 2.35 : 3.1;
+        }
+      });
+    }
+  } catch (_) {}
+}
+
+function handleSplineClick() {
+  const bubble = document.getElementById('splineSpeechBubble');
+  const textEl = document.getElementById('splineSpeechText');
+  if (!bubble || !textEl) return;
+
+  textEl.textContent = splineGreetings[greetingIdx % splineGreetings.length];
+  greetingIdx++;
+
+  bubble.classList.remove('opacity-0', 'scale-95');
+  bubble.classList.add('opacity-100', 'scale-100');
+
+  clearTimeout(speechTimeout);
+  speechTimeout = setTimeout(() => {
+    bubble.classList.remove('opacity-100', 'scale-100');
+    bubble.classList.add('opacity-0', 'scale-95');
+  }, 2600);
 }
 
 // Sync across multiple browser tabs
@@ -1490,21 +1717,42 @@ async function init() {
     // Apply initial theme
     applyTheme(getCurrentTheme());
 
+    // Immediately initialize 3D interactive mascot on landing page
+    initSpline3D();
+
     const postInput = document.getElementById('postInput');
     if (postInput) {
       postInput.addEventListener('input', updatePostSqlPreview);
     }
 
-    await loadUsers();
-    renderLoginAccounts();
-    updateLoginSqlPreview();
+    // Initialize Scroll Reveal IntersectionObserver for Landing Page
+    if ('IntersectionObserver' in window) {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.02, rootMargin: '0px 0px 100px 0px' });
+
+      document.querySelectorAll('.landing-reveal').forEach(el => revealObserver.observe(el));
+    } else {
+      document.querySelectorAll('.landing-reveal').forEach(el => el.classList.add('visible'));
+    }
+
+    try {
+      await loadUsers();
+      renderLoginAccounts();
+      updateLoginSqlPreview();
+    } catch (_) {}
 
     // Check if user session already exists in sessionStorage
     const savedUserId = sessionStorage.getItem('connectsphere_active_user');
     if (savedUserId && users.some(u => String(u.user_id) === String(savedUserId))) {
       await enterAppSession(Number(savedUserId));
     } else {
-      showLoginScreen();
+      showLandingPage();
     }
 
     // Background Auto-Sync: keep active table live every 3.5s (only if admin or queries are open)
@@ -1522,6 +1770,7 @@ async function init() {
       } catch (_) {}
     }, 3500);
 
+    refreshIcons();
   } catch (e) {
     showToast('Failed to initialize app. Is the server running?', 'error');
   }
