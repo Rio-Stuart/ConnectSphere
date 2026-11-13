@@ -618,40 +618,13 @@ app.get('/api/analytics/engagement', async (_req, res) => {
 app.get('/api/db-status', async (_req, res) => {
   try {
     const isNetlifyEnv = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
-    const envKeys = Object.keys(process.env).filter(k => k.includes('NETLIFY') || k.includes('DB') || k.includes('URL'));
-    const hasGlobalNetlify = typeof Netlify !== 'undefined';
-    const globalNetlifyKeys = hasGlobalNetlify ? Object.keys(Netlify) : [];
-    const hasNetlifyEnv = hasGlobalNetlify && Boolean(Netlify.env);
-    const netlifyEnvDbUrl = hasNetlifyEnv ? Boolean(Netlify.env.get('NETLIFY_DB_URL')) : false;
-
-    // Check if we can get a connection string from Netlify Database
-    let connError = null;
-    let connResolved = false;
-    let queryTest = null;
-    try {
-      const { initDb, executeQuery } = netlifyDb;
-      const { pool: p, db } = initDb();
-      connResolved = Boolean(p || db);
-      if (connResolved) {
-        const testRes = await executeQuery('SELECT COUNT(*) AS total_users FROM Users');
-        queryTest = testRes.rows[0];
-      }
-    } catch (e) {
-      connError = e.message;
-    }
-
+    const { rows, query } = await runQuery('SELECT 1 as connected, CURRENT_TIMESTAMP as server_time');
     res.json({
-      status: 'diagnostic',
+      status: 'healthy',
       isNetlifyEnv,
-      envKeys,
-      hasGlobalNetlify,
-      globalNetlifyKeys,
-      hasNetlifyEnv,
-      netlifyEnvDbUrl,
-      processDbUrl: Boolean(process.env.NETLIFY_DB_URL),
-      connResolved,
-      connError,
-      queryTest
+      connected: true,
+      serverTime: rows[0] && rows[0].server_time,
+      query
     });
   } catch (err) {
     res.status(500).json({
