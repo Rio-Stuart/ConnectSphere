@@ -627,10 +627,15 @@ app.get('/api/db-status', async (_req, res) => {
     // Check if we can get a connection string from Netlify Database
     let connError = null;
     let connResolved = false;
+    let queryTest = null;
     try {
-      const { initDb } = netlifyDb;
+      const { initDb, executeQuery } = netlifyDb;
       const { pool: p, db } = initDb();
       connResolved = Boolean(p || db);
+      if (connResolved) {
+        const testRes = await executeQuery('SELECT COUNT(*) AS total_users FROM Users');
+        queryTest = testRes.rows[0];
+      }
     } catch (e) {
       connError = e.message;
     }
@@ -645,7 +650,8 @@ app.get('/api/db-status', async (_req, res) => {
       netlifyEnvDbUrl,
       processDbUrl: Boolean(process.env.NETLIFY_DB_URL),
       connResolved,
-      connError
+      connError,
+      queryTest
     });
   } catch (err) {
     res.status(500).json({
