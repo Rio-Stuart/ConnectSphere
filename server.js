@@ -618,13 +618,34 @@ app.get('/api/analytics/engagement', async (_req, res) => {
 app.get('/api/db-status', async (_req, res) => {
   try {
     const isNetlifyEnv = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
-    const { rows, query } = await runQuery('SELECT 1 as connected, CURRENT_TIMESTAMP as server_time');
+    const envKeys = Object.keys(process.env).filter(k => k.includes('NETLIFY') || k.includes('DB') || k.includes('URL'));
+    const hasGlobalNetlify = typeof Netlify !== 'undefined';
+    const globalNetlifyKeys = hasGlobalNetlify ? Object.keys(Netlify) : [];
+    const hasNetlifyEnv = hasGlobalNetlify && Boolean(Netlify.env);
+    const netlifyEnvDbUrl = hasNetlifyEnv ? Boolean(Netlify.env.get('NETLIFY_DB_URL')) : false;
+
+    // Check if we can get a connection string from Netlify Database
+    let connError = null;
+    let connResolved = false;
+    try {
+      const { initDb } = netlifyDb;
+      const { pool: p, db } = initDb();
+      connResolved = Boolean(p || db);
+    } catch (e) {
+      connError = e.message;
+    }
+
     res.json({
-      status: 'healthy',
+      status: 'diagnostic',
       isNetlifyEnv,
-      hasNetlifyDbUrl: Boolean(process.env.NETLIFY_DB_URL),
-      dbResult: rows[0],
-      query
+      envKeys,
+      hasGlobalNetlify,
+      globalNetlifyKeys,
+      hasNetlifyEnv,
+      netlifyEnvDbUrl,
+      processDbUrl: Boolean(process.env.NETLIFY_DB_URL),
+      connResolved,
+      connError
     });
   } catch (err) {
     res.status(500).json({
