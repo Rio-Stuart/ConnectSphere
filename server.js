@@ -26,18 +26,18 @@ fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // ── MySQL Connection Pool ─────────────────────────────────────
 const dbConfig = {
-  host:               process.env.DB_HOST || 'localhost',
-  port:               Number(process.env.DB_PORT) || 3306,
-  user:               process.env.DB_USER || 'root',
-  password:           process.env.DB_PASSWORD || '',
-  database:           process.env.DB_NAME || 'connectsphere',
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT) || 3306,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'connectsphere',
   waitForConnections: true,
-  connectionLimit:    process.env.NETLIFY ? 5 : 15,
-  queueLimit:         0,
-  enableKeepAlive:    true,
+  connectionLimit: process.env.NETLIFY ? 5 : 15,
+  queueLimit: 0,
+  enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-  dateStrings:        true, // Return timestamps as formatted strings matching SQL
-  ssl:                process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+  dateStrings: true, // Return timestamps as formatted strings matching SQL
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
 };
 
 const pool = mysql.createPool(dbConfig);
@@ -61,10 +61,10 @@ async function runQuery(sql, params = []) {
     try {
       const result = await netlifyDb.executeQuery(sql, params);
       const entry = {
-        id:        queryLog.length + 1,
+        id: queryLog.length + 1,
         type,
-        query:     result.query,
-        params:    result.params,
+        query: result.query,
+        params: result.params,
         timestamp: new Date().toISOString()
       };
       queryLog.push(entry);
@@ -88,10 +88,10 @@ async function runQuery(sql, params = []) {
 
   // MySQL Connection Pool fallback
   const entry = {
-    id:        queryLog.length + 1,
+    id: queryLog.length + 1,
     type,
-    query:     sql,
-    params:    params || [],
+    query: sql,
+    params: params || [],
     timestamp: new Date().toISOString()
   };
   queryLog.push(entry);
@@ -117,10 +117,10 @@ async function initDatabase() {
       console.log(`⚡ Database "${dbConfig.database}" does not exist. Initializing schema...`);
       try {
         const rootConn = await mysql.createConnection({
-          host:               dbConfig.host,
-          port:               dbConfig.port,
-          user:               dbConfig.user,
-          password:           dbConfig.password,
+          host: dbConfig.host,
+          port: dbConfig.port,
+          user: dbConfig.user,
+          password: dbConfig.password,
           multipleStatements: true
         });
         const schemaPath = path.join(__dirname, 'database', 'schema.sql');
@@ -674,10 +674,10 @@ app.post('/api/reset', async (_req, res) => {
     const sql = fs.readFileSync(schemaPath, 'utf-8');
 
     const resetConn = await mysql.createConnection({
-      host:               dbConfig.host,
-      port:               dbConfig.port,
-      user:               dbConfig.user,
-      password:           dbConfig.password,
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      password: dbConfig.password,
       multipleStatements: true
     });
     await resetConn.query(sql);

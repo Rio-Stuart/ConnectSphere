@@ -26,55 +26,29 @@ Chandigarh University
 
 ---
 
-## TABLE OF CONTENTS
+## PROJECT INDEX / TABLE OF CONTENTS
 
-1. [Cover Page](#1-cover-page)
-2. [Abstract](#2-abstract)
-3. [Introduction](#3-introduction)
-4. [Problem Statement and Objectives](#4-problem-statement-and-objectives)
-5. [Scope of the Project](#5-scope-of-the-project)
-6. [Requirement Analysis](#6-requirement-analysis)
-   - 6.1 Functional Requirements
-   - 6.2 Non-Functional Requirements
-   - 6.3 Hardware & Software Specifications
-7. [Entity-Relationship (ER) Diagram](#7-entity-relationship-er-diagram)
-   - 7.1 Entities and Attributes
-   - 7.2 Cardinality & Participation Constraints
-   - 7.3 Mermaid ER Visual Representation
-8. [Relational Schema & Database Design](#8-relational-schema--database-design)
-   - 8.1 Schema Notations
-   - 8.2 Detailed Table Specifications
-9. [Normalization (1NF, 2NF, 3NF & BCNF)](#9-normalization-1nf-2nf-3nf--bcnf)
-   - 9.1 First Normal Form (1NF)
-   - 9.2 Second Normal Form (2NF)
-   - 9.3 Third Normal Form (3NF)
-   - 9.4 Boyce-Codd Normal Form (BCNF) Analysis
-10. [SQL Implementation (DDL, DML, DQL, TCL, DCL)](#10-sql-implementation-ddl-dml-dql-tcl-dcl)
-    - 10.1 Data Definition Language (DDL)
-    - 10.2 Data Manipulation Language (DML)
-    - 10.3 Data Query Language (DQL)
-    - 10.4 Transaction Control Language (TCL)
-    - 10.5 Data Control Language (DCL)
-11. [SQL Queries with Explanations & Expected Outputs (20 Practical Queries)](#11-sql-queries-with-explanations--expected-outputs)
-12. [Constraints, Joins, Subqueries and Aggregate Functions](#12-constraints-joins-subqueries-and-aggregate-functions)
-    - 12.1 Integrity Constraints Analysis
-    - 12.2 Relational Join Operations
-    - 12.3 Correlated Subqueries & Nested Invocations
-    - 12.4 Aggregate Grouping Operations
-13. [Screenshots of Execution & Live Demonstration](#13-screenshots-of-execution--live-demonstration)
-14. [Conclusion](#14-conclusion)
-15. [Future Scope](#15-future-scope)
-16. [References & Research Sources](#16-references--research-sources)
+| Index No. | Project Topic / Description | Page No. (in PDF) |
+| :---: | :--- | :---: |
+| **1** | [Abstract](#1-abstract) | Page 3 |
+| **2** | [Introduction](#2-introduction) | Page 3 |
+| **3** | [Problem Statement and Objectives](#3-problem-statement-and-objectives) | Page 3 |
+| **4** | [Scope of the Project](#4-scope-of-the-project) | Page 4 |
+| **5** | [Requirement Analysis](#5-requirement-analysis) | Page 4 |
+| **6** | [Entity-Relationship (ER) Diagram](#6-entity-relationship-er-diagram) | Page 5 |
+| **7** | [Relational Schema / Database Design](#7-relational-schema--database-design) | Page 6 |
+| **8** | [Normalization (1NF, 2NF, 3NF & BCNF)](#8-normalization-1nf-2nf-3nf--bcnf) | Page 8 |
+| **9** | [SQL Implementation (DDL, DML, DQL, TCL, DCL)](#9-sql-implementation-ddl-dml-dql-tcl-dcl) | Page 8 |
+| **10** | [Minimum 15–20 SQL Queries with Explanations and Outputs](#10-minimum-1520-sql-queries-with-explanations-and-outputs) | Page 10 |
+| **11** | [Constraints, Joins, Subqueries and Aggregate Functions](#11-constraints-joins-subqueries-and-aggregate-functions) | Page 14 |
+| **12** | [Screenshots of Execution](#12-screenshots-of-execution) | Page 14 |
+| **13** | [Conclusion](#13-conclusion) | Page 17 |
+| **14** | [Future Scope](#14-future-scope) | Page 17 |
+| **15** | [References & Research Sources](#15-references--research-sources) | Page 17 |
 
 ---
 
-## 1. Cover Page
-
-*Refer to the title section above for institutional affiliation, author details, submitted faculty, and academic credentials.*
-
----
-
-## 2. Abstract
+## 1. Abstract
 
 In contemporary computer science pedagogy, the theoretical study of Database Management Systems (DBMS)—such as Boyce-Codd Normalization, ACID transactional guarantees, referential integrity cascades, and query execution plans—frequently remains detached from real-world application architectures. **ConnectSphere** bridges this gap by delivering a production-grade, relational social networking platform that doubles as an interactive, live SQL inspection engine.
 
@@ -82,7 +56,7 @@ Built upon **MySQL 8.0** and **PostgreSQL (Netlify Cloud Database)** with an **E
 
 ---
 
-## 3. Introduction
+## 2. Introduction
 
 Database Management Systems (DBMS) form the foundational backbone of virtually all data-intensive modern software systems. Relational Database Management Systems (RDBMS), founded upon E.F. Codd’s relational model of 1970, organize unstructured information into mathematically sound relations (tables) with strict domain constraints, tuple relationships, and declarative query semantics (SQL).
 
@@ -94,16 +68,16 @@ Modern social platforms manage billions of interconnected records: user identity
 
 ---
 
-## 4. Problem Statement and Objectives
+## 3. Problem Statement and Objectives
 
-### 4.1 Problem Statement
+### 3.1 Problem Statement
 Traditional DBMS educational curricula rely heavily on command-line terminal interactions (`mysql>` or `psql`) utilizing static toy databases (e.g., `Employee-Department`, `Sailors-Boats`). Students often struggle to conceptualize:
 - How web interfaces translate user actions into atomic SQL statements.
 - Why normalization is crucial to eliminate update, insertion, and deletion anomalies.
 - How cascading foreign keys safeguard database integrity during entity removals.
 - How complex relational operations (Correlated Subqueries, Left Outer Joins, Self Joins) operate in high-frequency production systems.
 
-### 4.2 Objectives of ConnectSphere
+### 3.2 Objectives of ConnectSphere
 1. **Relational Schema Rigor:** Design and implement a normalized database schema in Third Normal Form (3NF) encompassing `Users`, `Posts`, `Comments`, `Likes`, and `Followers`.
 2. **Constraint Enforcement:** Guarantee structural data integrity using Primary Keys, Foreign Keys with `ON DELETE CASCADE`, Candidate Unique Keys, and Domain Check Constraints (`CHECK`).
 3. **Dual Execution Environment:** Support both local enterprise deployments (**MySQL 8.0 InnoDB Engine**) and cloud serverless architectures (**Netlify Managed PostgreSQL**).
@@ -113,7 +87,7 @@ Traditional DBMS educational curricula rely heavily on command-line terminal int
 
 ---
 
-## 5. Scope of the Project
+## 4. Scope of the Project
 
 The scope of ConnectSphere covers full-stack database development, relational modeling, and API integration:
 
@@ -125,9 +99,9 @@ The scope of ConnectSphere covers full-stack database development, relational mo
 
 ---
 
-## 6. Requirement Analysis
+## 5. Requirement Analysis
 
-### 6.1 Functional Requirements
+### 5.1 Functional Requirements
 - **FR1 (User Identity Management):** System must register unique users with email, username, avatar, and bio, preventing duplicate registrations via unique constraint catches.
 - **FR2 (Authentication & Role Segregation):** Secure login workflow supporting regular accounts (password `dbms`) and DBA administrators (username `admin`, password `admin`).
 - **FR3 (Post & Multimedia Publishing):** Authorized users can publish posts containing textual payloads, file metadata, and image attachments.
@@ -137,13 +111,13 @@ The scope of ConnectSphere covers full-stack database development, relational mo
 - **FR7 (Timeline Feeds):** Users can toggle between an global timeline ("For You"), a network-filtered timeline ("Following"), and an author archive ("My Posts").
 - **FR8 (DBA Live SQL Console):** Administrative view providing real-time query logs, execution durations, raw table browsers, and one-click database reset capabilities.
 
-### 6.2 Non-Functional Requirements
+### 5.2 Non-Functional Requirements
 - **Performance:** Sub-50ms query execution times for index-backed read operations.
 - **Data Integrity:** Zero orphaned foreign records following deletions (`ON DELETE CASCADE`).
 - **Portability:** Executable across Windows, macOS, Linux, and serverless edge containers (Node.js 18+).
 - **Usability:** High-contrast responsive interface supporting both Modern Dark and Clean Light themes.
 
-### 6.3 Hardware & Software Specifications
+### 5.3 Hardware & Software Specifications
 - **Operating System:** Windows 10/11, macOS Sequoia, Ubuntu 22.04+
 - **RDBMS Engine:** MySQL Community Server 8.0 / PostgreSQL 16+
 - **Application Server:** Node.js v18.0.0+ / Express.js 4.21.0
@@ -152,9 +126,9 @@ The scope of ConnectSphere covers full-stack database development, relational mo
 
 ---
 
-## 7. Entity-Relationship (ER) Diagram
+## 6. Entity-Relationship (ER) Diagram
 
-### 7.1 Entities and Attributes
+### 6.1 Entities and Attributes
 1. **USERS**:
    - `user_id` (PK, Integer, Auto Increment)
    - `username` (Candidate Key, Unique, Varchar(50))
@@ -188,7 +162,7 @@ The scope of ConnectSphere covers full-stack database development, relational mo
    - `following_id` (FK referencing Users, Integer, Not Null)
    - `followed_at` (Timestamp, Default Current Timestamp)
 
-### 7.2 Cardinality & Participation Constraints
+### 6.2 Cardinality & Participation Constraints
 - **USERS to POSTS:** One-to-Many ($1:N$). A user may create zero or many posts. A post must belong to exactly one user (Mandatory participation on Post).
 - **POSTS to COMMENTS:** One-to-Many ($1:N$). A post can have zero or many comments. Each comment belongs to exactly one post.
 - **USERS to COMMENTS:** One-to-Many ($1:N$). A user writes zero or many comments. Each comment is authored by exactly one user.
@@ -196,7 +170,7 @@ The scope of ConnectSphere covers full-stack database development, relational mo
 - **USERS to LIKES:** One-to-Many ($1:N$). A user grants zero or many likes.
 - **USERS to FOLLOWERS (Recursive/Self Relationship):** Many-to-Many ($M:N$). A user can follow many other users and be followed by many users.
 
-### 7.3 Mermaid ER Visual Representation
+### 6.3 Mermaid ER Visual Representation
 
 ```mermaid
 erDiagram
@@ -254,9 +228,9 @@ erDiagram
 
 ---
 
-## 8. Relational Schema & Database Design
+## 7. Relational Schema & Database Design
 
-### 8.1 Schema Notations
+### 7.1 Schema Notations
 In relational algebra and schema notation, primary keys are underlined, and foreign keys are designated with arrows or superscripts:
 
 - **Users** ($\underline{\text{user\_id}}$, $\text{username}$, $\text{email}$, $\text{bio}$, $\text{avatar}$, $\text{is\_admin}$, $\text{created\_at}$)
@@ -271,7 +245,7 @@ In relational algebra and schema notation, primary keys are underlined, and fore
   *Foreign Keys:* $\text{Followers.follower\_id} \to \text{Users.user\_id}$, $\text{Followers.following\_id} \to \text{Users.user\_id}$  
   *Candidate Key:* $(\text{follower\_id}, \text{following\_id})$
 
-### 8.2 Detailed Table Specifications
+### 7.2 Detailed Table Specifications
 
 #### Table: `Users`
 | Column Name | Data Type | Constraints | Description |
@@ -325,24 +299,24 @@ In relational algebra and schema notation, primary keys are underlined, and fore
 
 ---
 
-## 9. Normalization (1NF, 2NF, 3NF & BCNF)
+## 8. Normalization (1NF, 2NF, 3NF & BCNF)
 
 Database normalization is the formal mathematical technique of organizing relations to minimize redundancy and prevent Insertion, Update, and Deletion Anomalies.
 
-### 9.1 First Normal Form (1NF)
+### 8.1 First Normal Form (1NF)
 **Rule:** A relation is in 1NF if and only if all domain values are atomic (indivisible) and there are no repeating groups.
 - **ConnectSphere Conformance:**
   - In an unnormalized design, multiple comments or liked user IDs might be stored as comma-delimited strings within the `Posts` row (`likes: "1,2,5"`).
   - ConnectSphere decomposes all repeating groups into discrete tables (`Comments`, `Likes`, `Followers`). Every attribute holds strictly atomic scalar values (single integers, strings, timestamps).
 
-### 9.2 Second Normal Form (2NF)
+### 8.2 Second Normal Form (2NF)
 **Rule:** A relation is in 2NF if it is in 1NF and every non-prime attribute is fully functionally dependent on the entire primary key (no partial functional dependencies).
 - **ConnectSphere Conformance:**
   - In composite tables like `Likes` and `Followers`, the candidate keys are composite: $(\text{post\_id}, \text{user\_id})$ and $(\text{follower\_id}, \text{following\_id})$.
   - Attributes such as `liked_at` depend on the *entire* tuple $(\text{post\_id}, \text{user\_id})$, not just on `post_id` or `user_id` individually.
   - User profile attributes (`username`, `email`) are decoupled into `Users` so they do not partially depend on post keys. Hence, there are zero partial dependencies.
 
-### 9.3 Third Normal Form (3NF)
+### 8.3 Third Normal Form (3NF)
 **Rule:** A relation is in 3NF if it is in 2NF and no non-prime attribute is transitively dependent on the primary key (no $X \to Y \to Z$ dependencies).
 - **ConnectSphere Conformance:**
   - In `Posts`, we store `user_id`. We do *not* store `author_username` or `author_avatar`. Storing `author_username` in `Posts` would produce the transitive dependency:
@@ -350,17 +324,17 @@ Database normalization is the formal mathematical technique of organizing relati
   - If a user changes their username, an unnormalized system requires an update across millions of post records (Update Anomaly).
   - In ConnectSphere, `username` exists strictly in `Users`. Any query needing author information uses an $O(1)$ indexed relation `JOIN Users u ON p.user_id = u.user_id`.
 
-### 9.4 Boyce-Codd Normal Form (BCNF)
+### 8.4 Boyce-Codd Normal Form (BCNF)
 **Rule:** A relation is in BCNF if for every non-trivial functional dependency $X \to Y$, $X$ is a superkey.
 - In all five relations (`Users`, `Posts`, `Comments`, `Likes`, `Followers`), every determinant is a candidate superkey (`user_id`, `post_id`, `comment_id`, `(post_id, user_id)`, `(follower_id, following_id)`). ConnectSphere satisfies BCNF.
 
 ---
 
-## 10. SQL Implementation (DDL, DML, DQL, TCL, DCL)
+## 9. SQL Implementation (DDL, DML, DQL, TCL, DCL)
 
 ConnectSphere utilizes the complete spectrum of standard SQL commands:
 
-### 10.1 Data Definition Language (DDL)
+### 9.1 Data Definition Language (DDL)
 DDL statements define, modify, and drop database structures:
 
 ```sql
@@ -442,7 +416,7 @@ CREATE TABLE Followers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-### 10.2 Data Manipulation Language (DML)
+### 9.2 Data Manipulation Language (DML)
 DML statements insert, update, and remove database tuples:
 
 ```sql
@@ -458,7 +432,7 @@ VALUES (2, 'Sunset at Tanah Lot temple in Bali! 🌅', 'https://images.unsplash.
 DELETE FROM Posts WHERE post_id = 4;
 ```
 
-### 10.3 Data Query Language (DQL)
+### 9.3 Data Query Language (DQL)
 DQL statements retrieve relational projections and selections:
 
 ```sql
@@ -471,7 +445,7 @@ FROM Users u
 WHERE u.user_id = 2;
 ```
 
-### 10.4 Transaction Control Language (TCL)
+### 9.4 Transaction Control Language (TCL)
 TCL statements manage transactional boundaries and ACID guarantees:
 
 ```sql
@@ -483,7 +457,7 @@ SAVEPOINT follow_created;
 COMMIT;
 ```
 
-### 10.5 Data Control Language (DCL)
+### 9.5 Data Control Language (DCL)
 DCL statements govern privilege and access management:
 
 ```sql
@@ -496,7 +470,7 @@ FLUSH PRIVILEGES;
 
 ---
 
-## 11. SQL Queries with Explanations & Expected Outputs
+## 10. Minimum 15–20 SQL Queries with Explanations and Outputs
 
 Here are **20 complete, fully-tested and executable SQL queries** utilized within ConnectSphere:
 
@@ -877,33 +851,33 @@ WHERE table_schema = 'connectsphere';
 
 ---
 
-## 12. Constraints, Joins, Subqueries and Aggregate Functions
+## 11. Constraints, Joins, Subqueries and Aggregate Functions
 
-### 12.1 Integrity Constraints Analysis
+### 11.1 Integrity Constraints Analysis
 Integrity constraints preserve database state validity:
 1. **Entity Integrity (PRIMARY KEY):** Every table employs an auto-incrementing integer key (`user_id`, `post_id`, etc.) guaranteeing unique tuple identity.
 2. **Referential Integrity (FOREIGN KEY ... ON DELETE CASCADE):** Relationships between child and parent tables enforce valid references. When a parent record is removed, all dependent comments, likes, and posts are purged atomically.
 3. **Domain Constraints (CHECK):** In `Followers`, `CHECK (follower_id <> following_id)` restricts invalid cyclic self-references at the storage engine level.
 4. **Key Constraints (UNIQUE):** Composite keys `(post_id, user_id)` in `Likes` prevent spamming duplicate likes.
 
-### 12.2 Relational Join Operations
+### 11.2 Relational Join Operations
 - **Inner Join (`JOIN`):** Combines matching records between `Posts` and `Users`, ensuring every post in the feed displays verified author information.
 - **Left Outer Join (`LEFT JOIN`):** Pairs all posts with matching likes; posts with zero likes retain their rows with `NULL` like identifiers, allowing `COUNT(l.like_id)` to accurately report 0.
 - **Self Join:** The `Followers` relation is joined to itself to uncover mutual friendships and calculate 2nd-degree social network recommendations.
 
-### 12.3 Correlated Subqueries & Nested Invocations
+### 11.3 Correlated Subqueries & Nested Invocations
 ConnectSphere uses correlated subqueries extensively in profile and feed endpoints:
 ```sql
 (SELECT COUNT(*) FROM Likes WHERE post_id = p.post_id) AS like_count
 ```
 For every candidate row `p` evaluated by the outer query, the inner subquery executes using `p.post_id` as an input parameter, dynamically deriving the real-time aggregate.
 
-### 12.4 Aggregate Grouping Operations
+### 11.4 Aggregate Grouping Operations
 Using `COUNT`, `MAX`, `COALESCE`, and `GROUP BY`, the engine collapses high-volume engagement records into analytical summaries while `HAVING` filters aggregated cohorts.
 
 ---
 
-## 13. Screenshots of Execution & Live Demonstration
+## 12. Screenshots of Execution
 
 ConnectSphere is deployed and live at:  
 **Live Production URL:** [https://connectspheredbms.netlify.app](https://connectspheredbms.netlify.app)  
@@ -929,7 +903,7 @@ ConnectSphere is deployed and live at:
 
 ---
 
-## 14. Conclusion
+## 13. Conclusion
 
 The **ConnectSphere** DBMS project successfully demonstrates that complex relational database principles can be brought to life through an intuitive, production-grade application architecture. By combining strict relational design principles (3NF normalization, foreign key cascades, domain constraints) with modern full-stack web engineering, the system achieves:
 
@@ -939,7 +913,7 @@ The **ConnectSphere** DBMS project successfully demonstrates that complex relati
 
 ---
 
-## 15. Future Scope
+## 14. Future Scope
 
 1. **Full-Text Search Indexing:** Implement MySQL `FULLTEXT` indexing and PostgreSQL `tsvector` / `tsquery` for inverted index keyword searches across post contents.
 2. **Database Sharding & Read Replicas:** Implement read/write splitting using proxy connection pools to distribute timeline reads across replicas while directing writes to a primary master.
@@ -948,7 +922,7 @@ The **ConnectSphere** DBMS project successfully demonstrates that complex relati
 
 ---
 
-## 16. References & Research Sources
+## 15. References & Research Sources
 
 1. **Silberschatz, A., Korth, H. F., & Sudarshan, S.** (2020). *Database System Concepts* (7th ed.). McGraw-Hill Education.
 2. **Elmasri, R., & Navathe, S. B.** (2017). *Fundamentals of Database Systems* (7th ed.). Pearson.

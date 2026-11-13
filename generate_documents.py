@@ -1,10 +1,11 @@
 # generate_documents.py — Generates DOCX and PDF Project Report matching Chandigarh University format
 import os
+import pypdf
 import docx
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 from docx2pdf import convert
@@ -32,12 +33,18 @@ def add_page_number_to_section(section):
     fldSimple.set(qn('w:instr'), 'PAGE')
     run._r.append(fldSimple)
 
-def build_report():
+def build_report(page_map=None):
+    if page_map is None:
+        page_map = {
+            1: "3", 2: "3", 3: "4", 4: "4", 5: "5",
+            6: "6", 7: "7", 8: "8", 9: "9", 10: "10",
+            11: "14", 12: "15", 13: "17", 14: "17", 15: "18"
+        }
+
     doc = Document()
     
     # Page setup - 1 inch margins
-    sections = doc.sections
-    for section in sections:
+    for section in doc.sections:
         section.top_margin = Inches(1.0)
         section.bottom_margin = Inches(1.0)
         section.left_margin = Inches(1.0)
@@ -54,7 +61,7 @@ def build_report():
     style.paragraph_format.space_after = Pt(6)
 
     # =========================================================================
-    # 1. COVER PAGE (Matching CU PDF Format)
+    # FRONT COVER PAGE (Matching CU PDF Format)
     # =========================================================================
     p1 = doc.add_paragraph()
     p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -129,6 +136,73 @@ def build_report():
     r_by.bold = True
     r_by.font.color.rgb = RGBColor(0x0f, 0x17, 0x2a)
 
+    # =========================================================================
+    # INSERT INDEX / TABLE OF CONTENTS PAGE RIGHT AFTER FRONT PAGE
+    # =========================================================================
+    doc.add_page_break()
+
+    p_idx_title = doc.add_paragraph()
+    p_idx_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_idx_title.paragraph_format.space_before = Pt(12)
+    p_idx_title.paragraph_format.space_after = Pt(16)
+    r_idx_title = p_idx_title.add_run("PROJECT INDEX / TABLE OF CONTENTS")
+    r_idx_title.bold = True
+    r_idx_title.font.size = Pt(15)
+    r_idx_title.font.color.rgb = RGBColor(0x0f, 0x17, 0x2a)
+
+    index_table = doc.add_table(rows=1, cols=3)
+    index_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    
+    idx_hdr = index_table.rows[0].cells
+    idx_headers = ["Index No.", "Project Topic / Description", "Page No."]
+    col_widths = [Inches(1.0), Inches(4.5), Inches(1.0)]
+
+    for i, h in enumerate(idx_headers):
+        idx_hdr[i].text = h
+        idx_hdr[i].width = col_widths[i]
+        p = idx_hdr[i].paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i != 1 else WD_ALIGN_PARAGRAPH.LEFT
+        p.runs[0].bold = True
+        p.runs[0].font.size = Pt(10.5)
+        p.runs[0].font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+        set_cell_background(idx_hdr[i], "1E293B")
+        set_cell_margins(idx_hdr[i], 120, 120, 150, 150)
+
+    index_topics = [
+        ("1", "Abstract", page_map.get(1, "3")),
+        ("2", "Introduction", page_map.get(2, "3")),
+        ("3", "Problem Statement and Objectives", page_map.get(3, "4")),
+        ("4", "Scope of the Project", page_map.get(4, "4")),
+        ("5", "Requirement Analysis", page_map.get(5, "5")),
+        ("6", "Entity-Relationship (ER) Diagram", page_map.get(6, "6")),
+        ("7", "Relational Schema / Database Design", page_map.get(7, "7")),
+        ("8", "Normalization (1NF, 2NF, 3NF & BCNF)", page_map.get(8, "8")),
+        ("9", "SQL Implementation (DDL, DML, DQL, TCL, DCL)", page_map.get(9, "9")),
+        ("10", "Minimum 15–20 SQL Queries with Explanations and Outputs", page_map.get(10, "10")),
+        ("11", "Constraints, Joins, Subqueries and Aggregate Functions", page_map.get(11, "14")),
+        ("12", "Screenshots of Execution", page_map.get(12, "15")),
+        ("13", "Conclusion", page_map.get(13, "17")),
+        ("14", "Future Scope", page_map.get(14, "17")),
+        ("15", "References & Research Sources", page_map.get(15, "18"))
+    ]
+
+    for row_idx, (num, topic, page) in enumerate(index_topics):
+        row = index_table.add_row()
+        bg = "F8FAFC" if row_idx % 2 == 0 else "FFFFFF"
+        for i, val in enumerate([num, topic, str(page)]):
+            c = row.cells[i]
+            c.width = col_widths[i]
+            c.text = val
+            p = c.paragraphs[0]
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i != 1 else WD_ALIGN_PARAGRAPH.LEFT
+            r = p.runs[0]
+            r.font.size = Pt(10)
+            if i == 0 or i == 2:
+                r.bold = True
+            set_cell_background(c, bg)
+            set_cell_margins(c, 90, 90, 130, 130)
+
+    # PAGE BREAK BEFORE SECTION 1
     doc.add_page_break()
 
     # Helper functions for document body
@@ -152,17 +226,6 @@ def build_report():
         run.bold = True
         run.font.size = Pt(12)
         run.font.color.rgb = RGBColor(0x0f, 0x17, 0x2a)
-        return p
-
-    def add_h3(text):
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(6)
-        p.paragraph_format.space_after = Pt(2)
-        p.paragraph_format.keep_with_next = True
-        run = p.add_run(text)
-        run.bold = True
-        run.font.size = Pt(11.5)
-        run.font.color.rgb = RGBColor(0x33, 0x41, 0x55)
         return p
 
     def add_p(text):
@@ -215,9 +278,9 @@ def build_report():
             r.font.color.rgb = RGBColor(0x47, 0x55, 0x69)
 
     # =========================================================================
-    # 2. ABSTRACT
+    # 1. ABSTRACT (Starts properly from Point 1)
     # =========================================================================
-    add_h1("2. Abstract")
+    add_h1("1. Abstract")
     add_p(
         "In modern computer science education, relational database management concepts such as normalization, "
         "referential integrity, relational algebra, and ACID transaction guarantees are frequently studied strictly "
@@ -237,9 +300,9 @@ def build_report():
     )
 
     # =========================================================================
-    # 3. INTRODUCTION
+    # 2. INTRODUCTION
     # =========================================================================
-    add_h1("3. Introduction")
+    add_h1("2. Introduction")
     add_p(
         "Relational Database Management Systems (RDBMS), founded upon E.F. Codd’s relational model (1970), organize "
         "unstructured data into mathematically sound relations (tables) governed by strict domain constraints, primary keys, "
@@ -257,10 +320,10 @@ def build_report():
     )
 
     # =========================================================================
-    # 4. PROBLEM STATEMENT AND OBJECTIVES
+    # 3. PROBLEM STATEMENT AND OBJECTIVES
     # =========================================================================
-    add_h1("4. Problem Statement and Objectives")
-    add_h2("4.1 Problem Statement")
+    add_h1("3. Problem Statement and Objectives")
+    add_h2("3.1 Problem Statement")
     add_p(
         "Traditional DBMS laboratory curricula typically rely on static command-line interactions utilizing toy schemas "
         "(such as Employee-Department or Sailors-Boats). Consequently, students often struggle to conceptualize: (a) how web "
@@ -269,7 +332,7 @@ def build_report():
         "and (d) how complex relational operations (Correlated Subqueries, Left Outer Joins, Self Joins) operate in high-frequency "
         "production environments."
     )
-    add_h2("4.2 Objectives of ConnectSphere")
+    add_h2("3.2 Objectives of ConnectSphere")
     add_bullet("1. Relational Schema Rigor: ", "Design and implement a normalized database schema in Third Normal Form (3NF) encompassing Users, Posts, Comments, Likes, and Followers.")
     add_bullet("2. Constraint Enforcement: ", "Guarantee structural integrity using Primary Keys, Foreign Keys with ON DELETE CASCADE, Candidate Unique Keys, and Domain Check Constraints.")
     add_bullet("3. Dual Database Support: ", "Deliver an execution layer compatible with both local enterprise MySQL 8.0 (InnoDB) and cloud-managed PostgreSQL instances.")
@@ -278,9 +341,9 @@ def build_report():
     add_bullet("6. Execution Guarantee: ", "Ensure all code and database scripts are 100% executable on client and evaluation machines without third-party dependencies.")
 
     # =========================================================================
-    # 5. SCOPE OF THE PROJECT
+    # 4. SCOPE OF THE PROJECT
     # =========================================================================
-    add_h1("5. Scope of the Project")
+    add_h1("4. Scope of the Project")
     add_p(
         "The scope of ConnectSphere covers end-to-end relational database modeling, application development, and API integration. "
         "It includes full CRUD capabilities for users, posts, media files, comments, likes, and follower relationships. Referential "
@@ -290,10 +353,10 @@ def build_report():
     )
 
     # =========================================================================
-    # 6. REQUIREMENT ANALYSIS
+    # 5. REQUIREMENT ANALYSIS
     # =========================================================================
-    add_h1("6. Requirement Analysis")
-    add_h2("6.1 Functional Requirements")
+    add_h1("5. Requirement Analysis")
+    add_h2("5.1 Functional Requirements")
     add_bullet("FR1 (User Identity Management): ", "System registers unique users with username, email, avatar, and bio, rejecting duplicate handles via unique constraint checks.")
     add_bullet("FR2 (Authentication & Roles): ", "Role separation supporting standard demo accounts (password 'dbms') and DBA administrators (username 'admin', password 'admin').")
     add_bullet("FR3 (Post & Multimedia Publishing): ", "Authorized users can publish text posts and attach image or binary documents.")
@@ -303,23 +366,23 @@ def build_report():
     add_bullet("FR7 (Timeline Feeds): ", "Users can filter timelines by 'For You' (global), 'Following' (network-only), and 'My Posts' (author archive).")
     add_bullet("FR8 (DBA Management Console): ", "Administrative view featuring real-time query logs, execution durations, raw table inspection, and database reset tools.")
 
-    add_h2("6.2 Non-Functional Requirements")
+    add_h2("5.2 Non-Functional Requirements")
     add_bullet("Performance: ", "Sub-50ms execution times for indexed read operations across all relations.")
     add_bullet("Data Integrity: ", "Zero orphaned foreign records following entity deletions via ON DELETE CASCADE.")
     add_bullet("Portability: ", "Executable across Windows, macOS, Linux, and cloud environments.")
     add_bullet("Usability: ", "Clean dual-theme interface supporting Modern Dark and Clean Light modes.")
 
-    add_h2("6.3 Hardware & Software Specifications")
+    add_h2("5.3 Hardware & Software Specifications")
     add_bullet("Database Engine: ", "MySQL Server 8.0 (InnoDB Storage Engine) / PostgreSQL 16+")
     add_bullet("Application Framework: ", "Node.js v18.0.0+ / Express.js 4.21.0")
     add_bullet("Database Drivers: ", "mysql2/promise (connection pooling), pg (PostgreSQL), @netlify/database")
     add_bullet("Frontend Stack: ", "Semantic HTML5, CSS3 Custom Properties, Vanilla ES6+ JavaScript (zero build step)")
 
     # =========================================================================
-    # 7. ENTITY-RELATIONSHIP (ER) DIAGRAM
+    # 6. ENTITY-RELATIONSHIP (ER) DIAGRAM
     # =========================================================================
-    add_h1("7. Entity-Relationship (ER) Diagram")
-    add_h2("7.1 Entities and Attributes")
+    add_h1("6. Entity-Relationship (ER) Diagram")
+    add_h2("6.1 Entities and Attributes")
     add_p(
         "The conceptual design of ConnectSphere comprises five core relational entities: Users, Posts, Comments, Likes, and Followers. "
         "Primary keys are designated by [PK], candidate unique keys by [UK], and foreign keys by [FK]."
@@ -330,7 +393,7 @@ def build_report():
     add_bullet("LIKES: ", "like_id [PK], post_id [FK], user_id [FK], liked_at, UNIQUE(post_id, user_id)")
     add_bullet("FOLLOWERS: ", "id [PK], follower_id [FK], following_id [FK], followed_at, CHECK(follower_id <> following_id)")
 
-    add_h2("7.2 Cardinality & Participation Constraints")
+    add_h2("6.2 Cardinality & Participation Constraints")
     add_bullet("USERS to POSTS (1:N): ", "One user can author zero or many posts; each post belongs to exactly one user.")
     add_bullet("POSTS to COMMENTS (1:N): ", "A post can receive zero or many comments; each comment belongs to exactly one post.")
     add_bullet("USERS to COMMENTS (1:N): ", "A user can write zero or many comments; each comment is authored by exactly one user.")
@@ -341,10 +404,10 @@ def build_report():
     add_figure('er_diagram_clean.png', 'Figure 1: Relational Entity-Relationship Diagram (3NF Schema)', width_in=5.8)
 
     # =========================================================================
-    # 8. RELATIONAL SCHEMA / DATABASE DESIGN
+    # 7. RELATIONAL SCHEMA / DATABASE DESIGN
     # =========================================================================
-    add_h1("8. Relational Schema / Database Design")
-    add_h2("8.1 Schema Notations")
+    add_h1("7. Relational Schema / Database Design")
+    add_h2("7.1 Schema Notations")
     add_p("The relational database schema is formally defined as:")
     add_p(
         "• Users (user_id [PK], username [UK], email [UK], bio, avatar, is_admin, created_at)\n"
@@ -354,10 +417,9 @@ def build_report():
         "• Followers (id [PK], follower_id [FK -> Users], following_id [FK -> Users], followed_at) [Candidate: (follower_id, following_id)]"
     )
 
-    add_h2("8.2 Detailed Table Specifications")
+    add_h2("7.2 Detailed Table Specifications")
     add_p("Table 1 summarizes the technical attributes, data types, and integrity constraints across all five relations:")
 
-    # Table of specifications
     table_spec = doc.add_table(rows=1, cols=4)
     table_spec.alignment = WD_TABLE_ALIGNMENT.CENTER
     hdr_cells = table_spec.rows[0].cells
@@ -399,28 +461,28 @@ def build_report():
             set_cell_margins(c, 80, 80, 120, 120)
 
     # =========================================================================
-    # 9. NORMALIZATION
+    # 8. NORMALIZATION
     # =========================================================================
-    add_h1("9. Normalization (1NF, 2NF, 3NF & BCNF)")
+    add_h1("8. Normalization (1NF, 2NF, 3NF & BCNF)")
     add_p(
         "Normalization is the mathematical discipline of designing relational database schemas to eliminate data "
         "redundancy and prevent Insertion, Update, and Deletion anomalies. ConnectSphere was subjected to rigorous decomposition:"
     )
-    add_h2("9.1 First Normal Form (1NF)")
+    add_h2("8.1 First Normal Form (1NF)")
     add_p(
         "A relation is in 1NF if and only if all attribute values are atomic and there are no repeating groups. In an "
         "unnormalized social schema, likes and comments might be stored as comma-delimited strings within the Posts row "
         "(e.g., likes: '1,2,5'). ConnectSphere decomposes all repeating collections into separate relational entities "
         "(Comments, Likes, Followers). Every attribute holds strictly atomic scalar values."
     )
-    add_h2("9.2 Second Normal Form (2NF)")
+    add_h2("8.2 Second Normal Form (2NF)")
     add_p(
         "A relation is in 2NF if it is in 1NF and every non-prime attribute is fully functionally dependent on the entire primary key "
         "(no partial dependencies). In composite relations such as Likes and Followers, candidate keys are composite: "
         "(post_id, user_id) and (follower_id, following_id). Attributes such as liked_at and followed_at depend on the entire pair, "
         "not a single component. User profile fields (username, avatar) are maintained strictly in Users, eliminating partial dependencies."
     )
-    add_h2("9.3 Third Normal Form (3NF)")
+    add_h2("8.3 Third Normal Form (3NF)")
     add_p(
         "A relation is in 3NF if it is in 2NF and no non-prime attribute is transitively dependent on the primary key (no X -> Y -> Z). "
         "In Posts, we store user_id. We omit author_username and author_avatar, because storing username in Posts would introduce "
@@ -428,7 +490,7 @@ def build_report():
         "would require updating millions of post rows (Update Anomaly). In ConnectSphere, username resides exclusively in Users, "
         "achieving strict 3NF compliance."
     )
-    add_h2("9.4 Boyce-Codd Normal Form (BCNF)")
+    add_h2("8.4 Boyce-Codd Normal Form (BCNF)")
     add_p(
         "A relation is in BCNF if for every non-trivial functional dependency X -> Y, X is a superkey. In all five ConnectSphere "
         "relations, every determinant is a candidate superkey (user_id, post_id, comment_id, (post_id, user_id), (follower_id, following_id)). "
@@ -436,10 +498,10 @@ def build_report():
     )
 
     # =========================================================================
-    # 10. SQL IMPLEMENTATION (DDL, DML, DQL, TCL, DCL)
+    # 9. SQL IMPLEMENTATION (DDL, DML, DQL, TCL, DCL)
     # =========================================================================
-    add_h1("10. SQL Implementation (DDL, DML, DQL, TCL, DCL)")
-    add_h2("10.1 Data Definition Language (DDL)")
+    add_h1("9. SQL Implementation (DDL, DML, DQL, TCL, DCL)")
+    add_h2("9.1 Data Definition Language (DDL)")
     add_p("The following DDL statements create the database schema with relational integrity and cascade rules:")
     add_code(
 """-- DDL: Base Table Creation
@@ -498,7 +560,7 @@ CREATE TABLE Followers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"""
     )
 
-    add_h2("10.2 Data Manipulation Language (DML)")
+    add_h2("9.2 Data Manipulation Language (DML)")
     add_p("Representative DML insert and delete statements utilized by the platform:")
     add_code(
 """-- DML: Insert User Tuple
@@ -513,7 +575,7 @@ VALUES (2, 'Sunset at Tanah Lot temple in Bali! 🌅', 'https://images.unsplash.
 DELETE FROM Posts WHERE post_id = 4;"""
     )
 
-    add_h2("10.3 Data Query Language (DQL)")
+    add_h2("9.3 Data Query Language (DQL)")
     add_p("Dynamic projection and selection with correlated subqueries:")
     add_code(
 """SELECT u.user_id, u.username, u.email,
@@ -522,7 +584,7 @@ DELETE FROM Posts WHERE post_id = 4;"""
 FROM Users u WHERE u.user_id = 1;"""
     )
 
-    add_h2("10.4 Transaction Control Language (TCL)")
+    add_h2("9.4 Transaction Control Language (TCL)")
     add_p("ACID transaction management for multi-statement atomic operations:")
     add_code(
 """START TRANSACTION;
@@ -531,7 +593,7 @@ SAVEPOINT follow_created;
 COMMIT;"""
     )
 
-    add_h2("10.5 Data Control Language (DCL)")
+    add_h2("9.5 Data Control Language (DCL)")
     add_p("Security and privilege grant commands for least-privilege database access:")
     add_code(
 """CREATE USER 'connectsphere_app'@'localhost' IDENTIFIED BY 'dbms_secure_pass';
@@ -540,9 +602,9 @@ FLUSH PRIVILEGES;"""
     )
 
     # =========================================================================
-    # 11. 20 SQL QUERIES WITH EXPLANATIONS AND OUTPUTS
+    # 10. 20 SQL QUERIES WITH EXPLANATIONS AND OUTPUTS
     # =========================================================================
-    add_h1("11. SQL Queries with Explanations and Expected Outputs")
+    add_h1("10. Minimum 15–20 SQL Queries with Explanations and Outputs")
     add_p("The following 20 SQL queries are implemented and executable in ConnectSphere:")
 
     queries = [
@@ -654,36 +716,36 @@ FLUSH PRIVILEGES;"""
         add_bullet("Output: ", output)
 
     # =========================================================================
-    # 12. CONSTRAINTS, JOINS, SUBQUERIES AND AGGREGATE FUNCTIONS
+    # 11. CONSTRAINTS, JOINS, SUBQUERIES AND AGGREGATE FUNCTIONS
     # =========================================================================
-    add_h1("12. Constraints, Joins, Subqueries and Aggregate Functions")
-    add_h2("12.1 Integrity Constraints Analysis")
+    add_h1("11. Constraints, Joins, Subqueries and Aggregate Functions")
+    add_h2("11.1 Integrity Constraints Analysis")
     add_p(
         "ConnectSphere relies on database-level constraints to guarantee consistency: (a) PRIMARY KEY auto-increments "
         "enforce unique tuple identity; (b) FOREIGN KEY constraints with ON DELETE CASCADE ensure that when a user or post is "
         "deleted, all child comments, likes, and follower links are purged automatically; (c) CHECK constraints prevent invalid self-follows; "
         "and (d) Composite UNIQUE constraints prohibit redundant like interactions."
     )
-    add_h2("12.2 Relational Join Operations")
+    add_h2("11.2 Relational Join Operations")
     add_p(
         "The system utilizes INNER JOINs to link posts and comments with author details, LEFT OUTER JOINs to preserve posts "
         "with zero likes in leaderboard views, and SELF JOINs across the social graph to discover bidirectional friendships and recommendations."
     )
-    add_h2("12.3 Correlated Subqueries & Nested Invocations")
+    add_h2("11.3 Correlated Subqueries & Nested Invocations")
     add_p(
         "Scalar correlated subqueries dynamically evaluate engagement counts for each post and user row without requiring denormalized "
         "counter columns in the storage tables."
     )
-    add_h2("12.4 Aggregate Grouping Operations")
+    add_h2("11.4 Aggregate Grouping Operations")
     add_p(
         "Using COUNT, MAX, COALESCE, and GROUP BY, high-volume interaction tuples are aggregated into real-time metrics, while HAVING "
         "clauses filter aggregated cohorts based on platform-wide averages."
     )
 
     # =========================================================================
-    # 13. SCREENSHOTS OF EXECUTION
+    # 12. SCREENSHOTS OF EXECUTION
     # =========================================================================
-    add_h1("13. Screenshots of Execution")
+    add_h1("12. Screenshots of Execution")
     add_p("The following screenshots illustrate the live application deployed at https://connectspheredbms.netlify.app:")
     
     add_figure('screenshot1_auth_clean.png', 'Figure 2: User Authentication View with Real-Time DQL Query Inspection Card')
@@ -692,9 +754,9 @@ FLUSH PRIVILEGES;"""
     add_figure('screenshot4_main_ui_clean.png', 'Figure 5: ConnectSphere Complete Application Interface with Test Account Switcher')
 
     # =========================================================================
-    # 14. CONCLUSION
+    # 13. CONCLUSION
     # =========================================================================
-    add_h1("14. Conclusion")
+    add_h1("13. Conclusion")
     add_p(
         "The ConnectSphere DBMS project demonstrates how foundational relational database principles can be seamlessly integrated "
         "into a modern web application. By enforcing strict 3NF normalization, foreign key cascade actions, domain constraints, "
@@ -704,18 +766,18 @@ FLUSH PRIVILEGES;"""
     )
 
     # =========================================================================
-    # 15. FUTURE SCOPE
+    # 14. FUTURE SCOPE
     # =========================================================================
-    add_h1("15. Future Scope")
+    add_h1("14. Future Scope")
     add_bullet("1. Inverted Index Full-Text Search: ", "Implement MySQL FULLTEXT indexes and PostgreSQL tsvector/tsquery for high-speed content search.")
     add_bullet("2. Read/Write Connection Splitting: ", "Integrate database proxies to route timeline reads across read replicas while directing writes to a primary master.")
     add_bullet("3. Database Triggers & Stored Procedures: ", "Shift validation logic into server-side stored procedures (DELIMITER //) and triggers.")
     add_bullet("4. Real-Time Telemetry over WebSockets: ", "Stream live SQL query execution logs to external administrative monitors.")
 
     # =========================================================================
-    # 16. REFERENCES
+    # 15. REFERENCES & RESEARCH SOURCES
     # =========================================================================
-    add_h1("16. References")
+    add_h1("15. References & Research Sources")
     add_p("1. Silberschatz, A., Korth, H. F., & Sudarshan, S. (2020). Database System Concepts (7th ed.). McGraw-Hill Education.")
     add_p("2. Elmasri, R., & Navathe, S. B. (2017). Fundamentals of Database Systems (7th ed.). Pearson.")
     add_p("3. Codd, E. F. (1970). A Relational Model of Data for Large Shared Data Banks. Communications of the ACM, 13(6), 377–387.")
@@ -725,13 +787,52 @@ FLUSH PRIVILEGES;"""
 
     out_docx = 'ConnectSphere_DBMS_Project_Report.docx'
     doc.save(out_docx)
-    print(f"DOCX report saved successfully: {out_docx}")
+    print(f"DOCX report saved: {out_docx}")
 
-    # Convert to PDF using docx2pdf
     out_pdf = 'ConnectSphere_DBMS_Project_Report.pdf'
-    print("Converting DOCX to PDF using docx2pdf...")
+    print("Converting DOCX to PDF...")
     convert(out_docx, out_pdf)
-    print(f"PDF report generated successfully: {out_pdf}")
+    print(f"PDF report generated: {out_pdf}")
+
+    # Determine exact page numbers of each section from the generated PDF
+    try:
+        reader = pypdf.PdfReader(out_pdf)
+        print(f"Total pages in PDF: {len(reader.pages)}")
+        sec_targets = {
+            1: "1. Abstract",
+            2: "2. Introduction",
+            3: "3. Problem Statement and Objectives",
+            4: "4. Scope of the Project",
+            5: "5. Requirement Analysis",
+            6: "6. Entity-Relationship (ER) Diagram",
+            7: "7. Relational Schema / Database Design",
+            8: "8. Normalization (1NF, 2NF, 3NF & BCNF)",
+            9: "9. SQL Implementation (DDL, DML, DQL, TCL, DCL)",
+            10: "10. Minimum 15–20 SQL Queries with Explanations and Outputs",
+            11: "11. Constraints, Joins, Subqueries and Aggregate Functions",
+            12: "12. Screenshots of Execution",
+            13: "13. Conclusion",
+            14: "14. Future Scope",
+            15: "15. References & Research Sources"
+        }
+        detected_pages = {}
+        for num, title in sec_targets.items():
+            for idx, page in enumerate(reader.pages):
+                text = page.extract_text()
+                if title in text:
+                    detected_pages[num] = str(idx + 1)
+                    break
+        print("Detected exact section pages:", detected_pages)
+        return detected_pages
+    except Exception as e:
+        print("Could not parse page numbers:", e)
+        return None
 
 if __name__ == '__main__':
-    build_report()
+    # Pass 1: Build document and detect page numbers
+    detected = build_report()
+    if detected:
+        # Pass 2: Re-build document with 100% exact page numbers in Table of Contents
+        print("\nRe-building report with exact page numbers in Index table...")
+        build_report(page_map=detected)
+        print("Final DOCX and PDF generated with verified exact page numbers!")
