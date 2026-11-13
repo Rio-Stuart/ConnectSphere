@@ -96,10 +96,21 @@ async function runQuery(sql, params = []) {
   };
   queryLog.push(entry);
 
-  const [rows, fields] = await pool.query(sql, params);
-  const insertId = rows && (rows.insertId || (Array.isArray(rows) && rows[0] && rows[0].id));
-  const affectedRows = rows && rows.affectedRows;
-  return { rows, fields, query: sql, params, insertId, affectedRows };
+  try {
+    const [rows, fields] = await pool.query(sql, params);
+    const insertId = rows && (rows.insertId || (Array.isArray(rows) && rows[0] && rows[0].id));
+    const affectedRows = rows && rows.affectedRows;
+    return { rows, fields, query: sql, params, insertId, affectedRows };
+  } catch (err) {
+    if (err.name === 'AggregateError' && err.errors && err.errors.length) {
+      const firstErr = err.errors[0];
+      const code = firstErr.code || err.code;
+      const formatted = new Error(firstErr.message || 'Database connection refused on ' + (dbConfig.host || 'localhost') + ':' + (dbConfig.port || 3306));
+      formatted.code = code || 'ECONNREFUSED';
+      throw formatted;
+    }
+    throw err;
+  }
 }
 
 // ── Automatic Database & Schema Verification ──────────────────
@@ -108,31 +119,79 @@ async function initDatabase() {
   if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
     return;
   }
+
+  async function checkAndSeedSchema() {
+    try {
+      const rootConn = await mysql.createConnection({
+        host: dbConfig.host,
+        port: dbConfig.port,
+        user: dbConfig.user,
+        password: dbConfig.password,
+        multipleStatements: true
+      });
+      const schemaPath = path.join(__dirname, 'database', 'schema.sql');
+      const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
+      await rootConn.query(schemaSql);
+      await rootConn.end();
+      console.log(`✅ Database "${dbConfig.database}" verified and seeded successfully!`);
+    } catch (seedErr) {
+      console.error('❌ Failed to auto-initialize schema:', seedErr.message);
+    }
+  }
+
   try {
     const conn = await pool.getConnection();
     conn.release();
     console.log(`✅ Connected to MySQL database "${dbConfig.database}" at ${dbConfig.host}:${dbConfig.port}`);
   } catch (err) {
+    const isConnRefused = err.code === 'ECONNREFUSED' || 
+                          (err.name === 'AggregateError' && err.errors && err.errors.some(e => e.code === 'ECONNREFUSED'));
+
+    if (isConnRefused && (dbConfig.host === 'localhost' || dbConfig.host === '127.0.0.1')) {
+      const { spawn, execSync } = require('child_process');
+      const possiblePaths = [
+        'C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqld.exe',
+        'C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin\\mysqld.exe'
+      ];
+      const mysqldPath = possiblePaths.find(p => fs.existsSync(p));
+      const localDataDir = path.join(__dirname, 'mysql_data');
+
+      if (mysqldPath) {
+        console.log('⚡ Local MySQL daemon is not active. Attempting to start local MySQL service...');
+        if (!fs.existsSync(localDataDir)) {
+          fs.mkdirSync(localDataDir, { recursive: true });
+          try {
+            execSync(`"${mysqldPath}" --datadir="${localDataDir}" --initialize-insecure --console`, { stdio: 'ignore' });
+          } catch (_) {}
+        }
+
+        try {
+          const child = spawn(mysqldPath, [`--datadir=${localDataDir}`, `--port=${dbConfig.port}`, '--console'], {
+            detached: true,
+            stdio: 'ignore'
+          });
+          child.unref();
+
+          // Wait 2.5s for mysqld socket to bind
+          await new Promise(r => setTimeout(r, 2500));
+          const conn = await pool.getConnection();
+          conn.release();
+          console.log(`✅ Auto-started local MySQL and connected to "${dbConfig.database}"!`);
+          return;
+        } catch (autoErr) {
+          if (autoErr.code === 'ER_BAD_DB_ERROR') {
+            await checkAndSeedSchema();
+            return;
+          }
+        }
+      }
+    }
+
     if (err.code === 'ER_BAD_DB_ERROR') {
       console.log(`⚡ Database "${dbConfig.database}" does not exist. Initializing schema...`);
-      try {
-        const rootConn = await mysql.createConnection({
-          host: dbConfig.host,
-          port: dbConfig.port,
-          user: dbConfig.user,
-          password: dbConfig.password,
-          multipleStatements: true
-        });
-        const schemaPath = path.join(__dirname, 'database', 'schema.sql');
-        const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
-        await rootConn.query(schemaSql);
-        await rootConn.end();
-        console.log(`✅ Database "${dbConfig.database}" created and seeded successfully!`);
-      } catch (seedErr) {
-        console.error('❌ Failed to auto-initialize schema:', seedErr.message);
-      }
+      await checkAndSeedSchema();
     } else {
-      console.error('⚠️ MySQL Connection Notice:', err.message);
+      console.error('⚠️ MySQL Connection Notice:', err.message || err.code || err);
       console.error('💡 To connect, please provide your MySQL root password in .env:');
       console.error('   DB_HOST=localhost');
       console.error('   DB_PORT=3306');
@@ -215,9 +274,13 @@ app.post('/api/users', async (req, res) => {
 // POST /api/login — user authentication
 app.post('/api/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username) return res.status(400).json({ error: 'Username is required' });
-    if (!password) return res.status(400).json({ error: 'Password is required' });
+    const { username, password } = req.body || {};
+    if (!username || typeof username !== 'string' || !username.trim()) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required' });
+    }
 
     const trimmedUser = username.trim();
     const isAdminUser = trimmedUser.toLowerCase() === 'admin';
@@ -234,7 +297,7 @@ app.post('/api/login', async (req, res) => {
 
     const sql = 'SELECT user_id, username, email, bio, avatar, created_at, is_admin FROM Users WHERE LOWER(username) = LOWER(?)';
     const { rows, query, params } = await runQuery(sql, [trimmedUser]);
-    if (rows.length === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).json({ error: `User "@${trimmedUser}" not found in Users database table.` });
     }
 
@@ -250,7 +313,21 @@ app.post('/api/login', async (req, res) => {
       message: isAdminUser ? 'Admin authentication successful — DBA privileges granted' : 'Authentication successful'
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const isDbUnavailable = err.code === 'ECONNREFUSED' || 
+                            err.code === 'PROTOCOL_CONNECTION_LOST' ||
+                            (err.errors && err.errors.some(e => e.code === 'ECONNREFUSED')) ||
+                            (err.message && (err.message.includes('ECONNREFUSED') || err.message.includes('connect refused')));
+
+    console.error('❌ Login Error:', err.message || err.code || err);
+
+    if (isDbUnavailable) {
+      return res.status(503).json({
+        error: 'Database service is currently unavailable. Please check the database connection.'
+      });
+    }
+
+    const safeError = (err.message && err.message.trim()) ? err.message : 'Authentication failed due to an unexpected server error.';
+    res.status(500).json({ error: safeError });
   }
 });
 
