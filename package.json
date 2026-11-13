@@ -1,0 +1,27 @@
+{
+  "name": "connectsphere",
+  "version": "1.0.0",
+  "description": "ConnectSphere — Social Media Platform (DBMS Class Project)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node database/seed.js"
+  },
+  "dependencies": {
+    "@netlify/database": "^2.0.3",
+    "better-sqlite3": "^13.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "mysql2": "^3.11.0",
+    "pg": "^8.23.1",
+    "serverless-http": "^4.0.0"
+  },
+  "keywords": [
+    "dbms",
+    "social-media",
+    "express",
+    "mysql"
+  ],
+  "license": "MIT"
+}

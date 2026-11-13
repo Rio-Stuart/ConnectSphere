@@ -1,0 +1,506 @@
+/* ConnectSphere — Social Media Platform Theme Styles */
+
+/* Base & Fonts */
+:root {
+  --brand-primary: #3b82f6;
+  --brand-indigo: #6366f1;
+  --brand-purple: #a855f7;
+  --brand-emerald: #10b981;
+  --brand-rose: #f43f5e;
+
+  /* Modern Web Guidance: Automatically adapt native UI to user preferences */
+  color-scheme: light dark;
+
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e293b #090d16;
+}
+
+/* Glassmorphism & Panel Styling */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 15px -3px rgba(99, 102, 241, 0.1);
+}
+
+/* User Profile Banner Gradient */
+.profile-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #1e3a8a 65%, #0f172a 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Story Ring Avatars */
+.story-ring-active {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  padding: 2px;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.story-ring-inactive {
+  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+  padding: 2px;
+  opacity: 0.85;
+  transition: all 0.2s ease;
+}
+
+.story-ring-inactive:hover {
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+}
+
+/* Hashtag Pills in Post Text */
+.hashtag-pill {
+  color: #38bdf8;
+  font-weight: 500;
+  padding: 0 2px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.hashtag-pill:hover {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.15);
+  text-decoration: underline;
+}
+
+/* SQL Pulse Animation */
+@keyframes sqlPulse {
+  0% {
+    border-left-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+  }
+  50% {
+    border-left-color: #34d399;
+    background-color: rgba(16, 185, 129, 0.08);
+  }
+  100% {
+    border-left-color: rgba(255, 255, 255, 0.1);
+    background-color: transparent;
+  }
+}
+
+.sql-entry-new {
+  animation: sqlPulse 1.8s ease-out forwards;
+  border-left: 3px solid #10b981;
+}
+
+.sql-entry {
+  transition: background-color 0.2s ease;
+}
+
+.sql-entry:hover {
+  background-color: rgba(51, 65, 85, 0.4);
+}
+
+/* Query type badge colors */
+.badge-select {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.badge-insert {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-delete {
+  background-color: rgba(244, 63, 94, 0.2);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.badge-update {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Like Heart Pop Animation */
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  75% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.like-pop {
+  animation: heartPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Toast Animations */
+@keyframes toastIn {
+  0% { transform: translateY(-20px) scale(0.95); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes toastOut {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-20px) scale(0.95); opacity: 0; }
+}
+
+.toast-enter {
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-exit {
+  animation: toastOut 0.25s ease-in forwards;
+}
+
+/* Native Dialog & Backdrop (Modern Web Guidance compliance) */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  background: rgba(8, 12, 22, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+dialog[open] {
+  display: block;
+}
+
+/* Blinking Terminal Cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  animation: blink 0.9s step-end infinite;
+}
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Smooth layout transitions */
+.layout-transition {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Focus outlines */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+}
+
+/* Thread line for comments */
+.comment-thread-line {
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: 8px;
+  width: 2px;
+  background: rgba(71, 85, 105, 0.4);
+}
+
+/* ==============================================================
+   DBMS Query Visibility & Perspective Modes
+   When body does NOT have .show-queries, hide all query details!
+   ============================================================== */
+body:not(.show-queries) .query-detail {
+  display: none !important;
+}
+
+.show-queries .query-detail {
+  animation: fadeInQuery 0.25s ease-out;
+}
+
+@keyframes fadeInQuery {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Admin specific indicator */
+.admin-pill {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(249, 115, 22, 0.15));
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fda4af;
+}
+
+/* ==============================================================
+   LIGHT THEME STYLING
+   Applies when html is NOT .dark (or has .light)
+   ============================================================== */
+html:not(.dark) {
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+html:not(.dark) ::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html:not(.dark) body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Header in light mode */
+html:not(.dark) header.glass-panel {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-bottom-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Cards & Panels */
+html:not(.dark) .glass-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+}
+
+html:not(.dark) .glass-card:hover {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.06), 0 0 12px -2px rgba(99, 102, 241, 0.12);
+}
+
+html:not(.dark) .bg-slate-900 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+html:not(.dark) .bg-slate-950 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+html:not(.dark) .bg-slate-950\/80,
+html:not(.dark) .bg-slate-950\/70,
+html:not(.dark) .bg-slate-950\/60,
+html:not(.dark) .bg-slate-950\/50 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .bg-slate-900\/90,
+html:not(.dark) .bg-slate-900\/80,
+html:not(.dark) .bg-slate-900\/60 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Typography in light mode */
+html:not(.dark) .text-white {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html:not(.dark) .text-slate-300 {
+  color: #334155 !important;
+}
+
+html:not(.dark) .text-slate-400 {
+  color: #64748b !important;
+}
+
+html:not(.dark) .text-slate-500 {
+  color: #64748b !important;
+}
+
+html:not(.dark) .border-slate-800,
+html:not(.dark) .border-slate-800\/80,
+html:not(.dark) .border-slate-800\/70,
+html:not(.dark) .border-slate-800\/60,
+html:not(.dark) .border-slate-800\/90,
+html:not(.dark) .border-slate-700,
+html:not(.dark) .border-slate-700\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Form Controls */
+html:not(.dark) input,
+html:not(.dark) textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html:not(.dark) input:focus,
+html:not(.dark) textarea:focus {
+  border-color: #6366f1 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Maintain white text on colorful gradient buttons */
+html:not(.dark) .bg-gradient-to-r .text-white,
+html:not(.dark) .bg-gradient-to-r,
+html:not(.dark) button.bg-indigo-600,
+html:not(.dark) button.bg-indigo-600 * {
+  color: #ffffff !important;
+}
+
+/* SQL Logger Terminal in Light Mode - High-contrast readable developer theme */
+html:not(.dark) #sqlLogTerminal {
+  background-color: #0d1117 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Tables in Light Mode */
+html:not(.dark) #tableContent table {
+  border-color: #e2e8f0;
+}
+
+html:not(.dark) #tableContent th {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) #tableContent tr.bg-slate-950 {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) #tableContent tr.bg-slate-900\/40,
+html:not(.dark) #tableContent tr.bg-slate-900\/50 {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) #tableContent tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html:not(.dark) #tableContent td {
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Dialogs in Light Mode */
+html:not(.dark) dialog {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+html:not(.dark) dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Profile Banner in Light Mode */
+html:not(.dark) .profile-banner {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 35%, #3b82f6 70%, #06b6d4 100%) !important;
+}
+
+/* Hashtags */
+html:not(.dark) .hashtag-pill {
+  color: #0284c7;
+}
+
+html:not(.dark) .hashtag-pill:hover {
+  color: #0369a1;
+  background: rgba(2, 132, 199, 0.1);
+}
+
+/* Theme Toggle Button in Light Mode */
+html:not(.dark) #themeToggleBtn {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #4f46e5;
+}
+
+html:not(.dark) #themeToggleBtn:hover {
+  background-color: #e2e8f0;
+  color: #4338ca;
+}
